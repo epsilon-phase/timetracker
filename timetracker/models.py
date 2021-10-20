@@ -15,6 +15,9 @@ Base = declarative_base()
 
 
 class SessionObject(Base):
+    """
+    Timetracker session
+    """
     __tablename__ = 'Session'
     id = Column(Integer, primary_key=True)
     date = Column(DT)
@@ -48,6 +51,12 @@ class WindowEvent(Base):
     time_end = Column(DT)
     session = relationship('SessionObject', back_populates='events')
     classes: list[WindowClass]
+
+    def date_of(self) -> tuple[int, int, int]:
+        year = self.time_start.year
+        month = self.time_start.month
+        day = self.time_start.day
+        return year, month, day
 
 
 session_object = SessionObject(id=time.monotonic_ns(), date=datetime.datetime.now())

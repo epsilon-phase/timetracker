@@ -4,6 +4,8 @@ import random
 import svgwrite
 from .. import models
 from svgwrite import cm, mm
+from . import color_chooser
+from typing import *
 
 
 class ChartPart:
@@ -13,7 +15,7 @@ class ChartPart:
     range_end: datetime.datetime
     title: str
 
-    def __init__(self, title: str, data: list[tuple[models.WindowEvent, list[str]]]):
+    def __init__(self, title: str, data: list[tuple[models.WindowEvent, list[str]]], cc=color_chooser.monokai):
         self.title = title
         self.data = data.copy()
         self.data.sort(key=lambda x: x[0].time_end)
@@ -22,51 +24,117 @@ class ChartPart:
         self.range_start = data[0][0].time_start
         self.range_end = data[-1][0].time_end
         self.tagindex = {}
+        self.color_chooser = cc
 
     def chooseColor(self, tag: str) -> str:
-        from . import color_chooser
+        """
+        Obtain a color that is consistent for a given tag with a given style
+        :param tag: The tag to color
+        :returns: The hex of the color.
+        """
         if tag not in self.tagindex.keys():
-            self.tagindex[tag] = len(self.tagindex)
-        return color_chooser.monokai.choose(self.tagindex[tag])
+            self.tagindex[tag] = hash(tag)
+        return self.color_chooser.choose(self.tagindex[tag])
 
-    def draw(self, drw: svgwrite.Drawing, width: float, height: float, height_offset) -> None:
+    def draw(self, drw: svgwrite.Drawing, width: float, height: float, height_offset, horizontal_offset,
+             add_titles: bool = False) -> None:
+        """
+        Draw the chart
+        :param drw: The svg drawing
+        :param width: The width of the chart part in centimeters
+        :param height: The height of the chart part in centimeters
+        :param height_offset: The vertical offset in centimeters
+        :param horizontal_offset: The horizontal offset in centimeters
+        :param add_titles: Add titles to the blocks, providing mouseovers displaying the window titles.
+        :return: None
+        """
+        from . import color_chooser
+        from functools import reduce
+        import copy
+        from itertools import chain
         chart: svgwrite.drawing.SVG = drw.add(drw.g())
+        annotation_color = color_chooser.monokai.lines
+        chart.add(drw.rect(insert=(horizontal_offset * cm, height_offset * cm), size=(width * cm, height * cm),
+                           fill=color_chooser.monokai.background))
+        chart.add(svgwrite.text.Text(self.title, x=[horizontal_offset * cm], y=[(height_offset + 0.5) * cm],
+                                     fill=annotation_color))
+
         vticks: svgwrite.drawing.SVG = chart.add(drw.g(id="vticks"))
         blocks: svgwrite.drawing.SVG = chart.add(drw.g(id='blocks'))
         labels: svgwrite.drawing.SVG = chart.add(drw.g(id='labels'))
-        offset = 2
+
+        tags = set(chain.from_iterable(map(lambda x: x[1], self.data)))
+        offset = 3.5
+        padding = 0.5
         delta = datetime.timedelta(hours=1)
-        scale = (width - offset) / self.range.total_seconds()
-        vscale = (height - 1) / max(map(lambda x: 1.0 * len(x[1]) + 1, self.data))
+
+        vscale = (height - 1) / len(tags)
         current = self.range_start
+        ordinals = {name: number for (name, number) in zip(sorted(tags, key=str.lower), range(len(tags)))}
+        # Ensures consistent numbering between different charts
+        for i in ordinals.keys():
+            self.chooseColor(i)
         pos = {}
-        while current < self.range_end:
-            print("Ongoing")
-
-            cx = scale * (current - self.range_start).total_seconds()
+        block_groups = {}
+        current = current.replace(minute=0, second=0)
+        end_time = (self.range_end + datetime.timedelta(hours=1)).replace(minute=0, second=0)
+        start_time = current.replace()
+        scale = (width - offset - padding) / (end_time - start_time).total_seconds()
+        vticks.add(drw.line(start=((offset + horizontal_offset) * cm, height_offset * cm),
+                            end=((horizontal_offset + offset) * cm, (height_offset + height) * cm),
+                            stroke=annotation_color))
+        vline = lambda x1, y1, l, **e: drw.line(start=(x1 * cm, y1 * cm), end=(x1 * cm, (y1 + l) * cm), **e)
+        while current <= end_time:
+            cx = horizontal_offset + offset + scale * (current - start_time).total_seconds()
+            hour = 3600 * scale
+            vticks.add(vline(cx, height_offset, 1, stroke=annotation_color))
+            vticks.add(vline(cx + (hour * 3) / 4, height_offset, .25, stroke=annotation_color))
+            vticks.add(vline(cx + (hour * 1) / 4, height_offset, .25, stroke=annotation_color))
+            # vticks.add(
+            #     drw.line(start=(cx * cm, height_offset * cm), end=(cx * cm, (height_offset + 1) * cm),
+            #              stroke=annotation_color))
             vticks.add(
-                drw.line(start=(cx * cm, height_offset * cm), end=(cx * cm, (height_offset + 1) * cm), stroke='black'))
+                vline(cx + hour / 2, height_offset, 0.5, stroke=annotation_color))
+            # drw.line(start=((cx + (3600 * scale) / 2) * cm, height_offset * cm),
+            #          end=((cx + (3600 * scale) / 2) * cm, (height_offset + 0.5) * cm),
+            #          stroke=annotation_color))
             timetext = f"{current.hour}:{current.minute}:{current.second}"
-
-            vticks.add(svgwrite.text.Text(timetext, x=[cx * cm], y=[(height_offset + 1) * cm], stroke='black'))
-            for index, value in enumerate(self.data):
-                for i in value[1]:
-                    if i in pos.keys():
-                        v = pos[i]
-                    else:
-                        pos[i] = len(pos)
-                        v = pos[i]
-                        labels.add(
-                            svgwrite.text.Text(i, x=[0 * cm], y=[(v * vscale + vscale / 2.0 + height_offset + 1) * cm]))
-                    start = v * vscale + height_offset + 1
-                    end = vscale
-                    block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
-                    startx = (value[0].time_start - self.range_start).total_seconds() * scale + offset
-                    endx = (value[0].time_end - self.range_start).total_seconds() * scale
-                    color = self.chooseColor(i)
-                    blocks.add(
-                        drw.rect(insert=(startx * cm, start * cm), size=(block_width * cm, vscale * cm), fill=color))
+            textoffset = -0.5 if current != start_time else 0.0
+            vticks.add(
+                svgwrite.text.Text(timetext, x=[(cx + textoffset) * cm], y=[(height_offset + 1) * cm],
+                                   fill=annotation_color))
             current += delta
+
+        for index, value in enumerate(self.data):
+            for i in value[1]:
+                if i in pos.keys():
+                    v = pos[i]
+                else:
+                    pos[i] = ordinals[i]
+                    v = pos[i]
+                    block_groups[i] = blocks.add(drw.g(id=f"block{v}", fill=self.chooseColor(i)))
+                    f = filter(lambda x: i in x[1], self.data)
+                    s = sum(map(lambda x: (x[0].time_end - x[0].time_start).total_seconds(), f))
+                    l = labels.add(
+                        svgwrite.text.Text("", x=[horizontal_offset * cm],
+                                           y=[(v * vscale + vscale / 2.0 + height_offset + 1) * cm],
+                                           fill=annotation_color))
+                    l.add(svgwrite.text.TSpan(i))
+                    l.add(
+                        svgwrite.text.TSpan(f"{round(s, ndigits=2)} seconds", dy=['1.2em'], x=[horizontal_offset * cm]))
+                start = v * vscale + height_offset + 1
+                block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
+                startx = (value[0].time_start - start_time).total_seconds() * scale + offset + horizontal_offset
+                r = drw.rect(insert=(startx * cm, start * cm), size=(block_width * cm, vscale * cm),
+                             ry=(vscale / 2.0) * cm, rx=0.1 * cm)
+                if add_titles:
+                    r.set_desc(title=value[0].window_name,
+                               desc=f"{(value[0].time_end - value[0].time_start).total_seconds()} seconds")
+                block_groups[i].add(r)
+
+        chart.add(drw.line(start=(horizontal_offset * cm, (height_offset + height) * cm),
+                           end=((width + horizontal_offset) * cm, (height_offset + height) * cm),
+                           stroke=annotation_color))
 
         drw.save()
 
@@ -79,3 +147,24 @@ def test():
                            range(1, 8)])
     drw = svgwrite.Drawing("Hello.svg")
     chart.draw(drw, 15, 10, 0)
+
+
+def grid_iterator(n: int, columns: int, width: float, height: float) -> Iterable[tuple[float, float]]:
+    """
+    Convenience function to generate the appropriate grid positions
+
+    :param n: The number of positions to iterate through
+    :param columns: The number of columns to a row
+    :param width: The width of the positions in centimeters
+    :param height: The height increments in centimeters
+    :return: The positions to place the charts on the grid
+    """
+    x = 0
+    y = 0
+    for i in range(n):
+        yield x * width, height * y
+        if x == columns:
+            x = 0
+            y += 1
+        else:
+            x += 1

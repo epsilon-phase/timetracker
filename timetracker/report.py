@@ -1,49 +1,49 @@
-import svgwrite
-
 import timetracker.models as models
 import re
 from typing import *
 
 
-class NameTagger:
-    __slots__ = ['matcher', 'tags']
+class Matcher:
+
+    def match_string(self, matcher, string) -> bool:
+        if isinstance(matcher, list):
+            return any(map(lambda x: self.match_string(x, string), matcher))
+        elif isinstance(matcher, re.Pattern):
+            return matcher.match(string)
+        else:
+            m = matcher if self.case_sensitive else matcher.lower()
+            s = string if self.case_sensitive else string.lower()
+            return m in s
+
+
+class NameTagger(Matcher):
+    __slots__ = ['matcher', 'tags', 'case_sensitive']
     matcher: Union[str, re.Pattern]
     tags: list[str]
 
-    def __init__(self, match: Union[str, re.Pattern], tags: list[str]):
+    def __init__(self, match: Union[str, re.Pattern], tags: list[str], case_sensitive: bool = False):
         self.matcher = match
         self.tags = tags
+        self.case_sensitive = case_sensitive
 
     def matches(self, window_event: models.WindowEvent) -> tuple[bool, Optional[list[str]]]:
-        print(window_event.window_name)
-        if isinstance(self.matcher, re.Pattern):
-            print("im a regex")
-            if self.matcher.match(window_event.window_name):
-                return True, self.tags.copy()
-        else:
-            if self.matcher in window_event.window_name:
-                return True, self.tags.copy()
-        return False, self.tags.copy()
+        wn = window_event.window_name.lower() if not self.case_sensitive else window_event.window_name
+        is_match = self.match_string(self.matcher, wn)
+        return is_match, self.tags
 
 
-class ClassMatcher:
+class ClassMatcher(Matcher):
     matcher: Union[str, re.Pattern]
     tags: Optional[list[str]]
 
-    def __init__(self, matcher: Union[str, re.Pattern], tags: Optional[list[str]]):
+    def __init__(self, matcher: Union[str, re.Pattern], tags: Optional[list[str]], case_sensitive=False):
         self.matcher = matcher
         self.tags = tags
+        self.case_sensitive = case_sensitive
 
     def matches(self, window_event: models.WindowEvent) -> tuple[bool, Optional[list[str]]]:
-        if isinstance(self.matcher, re.Pattern):
-            m: re.Pattern = self.matcher
-            for wclass in window_event.classes:
-                if m.match(wclass.name):
-                    return True, self.tags
-        else:
-            for wclass in window_event.classes:
-                if self.matcher in wclass.name:
-                    return True, self.tags
+        is_match = any(map(lambda y: self.match_string(self.matcher, y.name), window_event.classes))
+        return is_match, self.tags
 
 
 class AndMatcher:
@@ -51,8 +51,7 @@ class AndMatcher:
     tags: Optional[list[str]]
 
     def __init__(self, matchers, tags):
-        if tags is None:
-            self.tags = []
+        self.tags = tags if tags else []
         self.matchers = matchers
 
     def matches(self, window_event: models.WindowEvent) -> tuple[bool, Optional[list[str]]]:
@@ -78,14 +77,16 @@ class OrMatcher:
     def matches(self, event: models.WindowEvent):
         t = self.tags.copy()
         evtmatch = list(map(lambda x: (x.matches(event)), self.matchers))
-        print(evtmatch)
-        for (matches,tags) in filter(lambda x:x is not None, evtmatch):
+        for (matches, tags) in filter(lambda x: x is not None, evtmatch):
             if matches:
                 t.extend(tags if tags else [])
         return any(map(lambda x: x and x[0], evtmatch)), t
 
 
-def process_events(matchers, events: Iterable[models.WindowEvent]):
+__types = {'or': OrMatcher, 'and': AndMatcher, 'name': NameTagger, 'class': ClassMatcher}
+
+
+def process_events(matchers, events: Iterable[models.WindowEvent]) -> list[tuple[models.WindowEvent, list[str]]]:
     r = []
     for e in events:
         l = []
@@ -95,20 +96,3 @@ def process_events(matchers, events: Iterable[models.WindowEvent]):
                 l.extend(tags)
         r.append((e, l))
     return r
-
-
-def example():
-    browsermatch = NameTagger('Firefox', ['browser'])
-    vulpine = NameTagger('Vulpine Club', ['social media'])
-    programming = OrMatcher([NameTagger('.py', ['python']),
-                             NameTagger('.lisp', ['lisp', 'common lisp']),
-                             ClassMatcher('jetbrains', [])], ['programming'])
-
-    gemcraft = NameTagger('GemCraft', ['Games'])
-    telegram = NameTagger('Telegram', ['social media', 'chat'])
-    m = [browsermatch, vulpine, programming, gemcraft, telegram]
-    r = process_events(m, models.session.query(models.WindowEvent))
-    import timetracker.chart as chart
-    c = chart.ChartPart("Thingy", r)
-    eg = svgwrite.Drawing('example.svg')
-    c.draw(eg, 40, 10, 0)

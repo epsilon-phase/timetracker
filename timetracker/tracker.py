@@ -6,6 +6,9 @@ import time
 
 from timetracker.models import engine, session, Base, WindowClass, WindowEvent, session_object
 
+_IDLE_TIMES = 30
+_SAMPLE_INTERVAL = 10
+
 Base.metadata.create_all(engine)
 
 
@@ -16,7 +19,6 @@ def GetEventClasses(wmclass: str) -> WindowClass:
     else:
         for i in wclass:
             return i
-        print("Making new wclass")
         wclass = WindowClass(name=wmclass)
     return wclass
 
@@ -26,7 +28,6 @@ def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
                           "-root",
                           "_NET_ACTIVE_WINDOW"],
                          stdout=subprocess.PIPE).communicate()[0].strip().split()[-1].decode('utf-8')
-    print(int(v, base=16))
     name = subprocess.Popen([b"xprop", b"-id",
                              v, b"WM_NAME"],
                             stdout=subprocess.PIPE,
@@ -37,7 +38,7 @@ def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
     wclass = set(map(lambda x: x.replace('"', '').strip(), wclass.split(',')))
     wclass = list(map(lambda x: GetEventClasses(x), wclass))
     now = datetime.datetime.now()
-    later = now + datetime.timedelta(seconds=10)
+    later = now + datetime.timedelta(seconds=_SAMPLE_INTERVAL)
     if last and last.window_id == int(v, base=16) and last.window_name == name:
         last.time_end = later
         return last
@@ -57,16 +58,24 @@ def GetMouseLocation() -> tuple[int, int]:
 
 def track():
     last = None
+    c = 0
+    last_pos = GetMouseLocation()
     while True:
+        current_pos = GetMouseLocation()
+        if current_pos == last_pos:
+            c += 1
+        else:
+            c = 0
+            last_pos = current_pos
+        if c >= _IDLE_TIMES:
+            print(f"No movement for {_SAMPLE_INTERVAL * c} seconds, pausing sampling until activity")
+            time.sleep(_SAMPLE_INTERVAL)
+            continue
         current = GetActiveWindowTitle(last)
         if current:
             session.add(current)
             if last != current:
                 print("new event")
                 last = current
-
         session.commit()
-        time.sleep(10)
-
-
-
+        time.sleep(_SAMPLE_INTERVAL)
