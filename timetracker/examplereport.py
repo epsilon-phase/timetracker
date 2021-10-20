@@ -33,7 +33,8 @@ def example():
     gemcraft = NameTagger('GemCraft', ['Games'])
     telegram = NameTagger('Telegram', ['social media', 'chat'])
     terminal = ClassMatcher('kitty', ['terminal'])
-    m = [browsermatch, web, programming, gemcraft, telegram, NameTagger('Discord', ['social media', 'chat']), terminal]
+    m = [browsermatch, web, programming, gemcraft, telegram, NameTagger('Discord', ['social media', 'chat']), terminal,
+         NameTagger('LyX', ['writing'])]
     r = process_events(m, models.session.query(models.WindowEvent))
 
     import timetracker.chart as chart

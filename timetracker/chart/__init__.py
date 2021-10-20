@@ -9,6 +9,10 @@ from typing import *
 
 
 class ChartPart:
+    """
+    A single part of the chart. At this point, just a single sort.
+    A single day, in this case usually.
+    """
     data: list[tuple[models.WindowEvent, list[str]]]
     range: datetime.timedelta
     range_start: datetime.datetime
@@ -83,6 +87,7 @@ class ChartPart:
         vticks.add(drw.line(start=((offset + horizontal_offset) * cm, height_offset * cm),
                             end=((horizontal_offset + offset) * cm, (height_offset + height) * cm),
                             stroke=annotation_color))
+        # Provide a convenient means to make vertical lines.
         vline = lambda x1, y1, l, **e: drw.line(start=(x1 * cm, y1 * cm), end=(x1 * cm, (y1 + l) * cm), **e)
         while current <= end_time:
             cx = horizontal_offset + offset + scale * (current - start_time).total_seconds()
@@ -90,14 +95,8 @@ class ChartPart:
             vticks.add(vline(cx, height_offset, 1, stroke=annotation_color))
             vticks.add(vline(cx + (hour * 3) / 4, height_offset, .25, stroke=annotation_color))
             vticks.add(vline(cx + (hour * 1) / 4, height_offset, .25, stroke=annotation_color))
-            # vticks.add(
-            #     drw.line(start=(cx * cm, height_offset * cm), end=(cx * cm, (height_offset + 1) * cm),
-            #              stroke=annotation_color))
             vticks.add(
                 vline(cx + hour / 2, height_offset, 0.5, stroke=annotation_color))
-            # drw.line(start=((cx + (3600 * scale) / 2) * cm, height_offset * cm),
-            #          end=((cx + (3600 * scale) / 2) * cm, (height_offset + 0.5) * cm),
-            #          stroke=annotation_color))
             timetext = f"{current.hour}:{current.minute}:{current.second}"
             textoffset = -0.5 if current != start_time else 0.0
             vticks.add(
@@ -112,7 +111,16 @@ class ChartPart:
                 else:
                     pos[i] = ordinals[i]
                     v = pos[i]
-                    block_groups[i] = blocks.add(drw.g(id=f"block{v}", fill=self.chooseColor(i)))
+                    block_groups[i] = blocks.add(
+                        drw.g(id=f"block{v}", fill=self.chooseColor(i), stroke=self.chooseColor(i)))
+                    block_groups[i].add(
+                        drw.line(
+                            start=((offset + horizontal_offset) * cm, (1 + height_offset + (.5 + v) * vscale) * cm),
+                            end=(
+                                (horizontal_offset + width - offset) * cm,
+                                (1 + height_offset + (0.5 + v) * vscale) * cm),
+                            stroke=annotation_color,
+                            stroke_dasharray="5", stroke_width=".2mm"))
                     f = filter(lambda x: i in x[1], self.data)
                     s = sum(map(lambda x: (x[0].time_end - x[0].time_start).total_seconds(), f))
                     l = labels.add(

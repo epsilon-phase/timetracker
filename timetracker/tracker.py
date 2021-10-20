@@ -69,6 +69,9 @@ def track():
             last_pos = current_pos
         if c >= _IDLE_TIMES:
             print(f"No movement for {_SAMPLE_INTERVAL * c} seconds, pausing sampling until activity")
+            # Forget the former activity, we'll have to note it
+            # individually later anyway
+            last = None
             time.sleep(_SAMPLE_INTERVAL)
             continue
         current = GetActiveWindowTitle(last)
