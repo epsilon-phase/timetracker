@@ -12,8 +12,19 @@
 
       Bit fiddly for a graphics program huh?
         * [ ] Improve generated svg
-            * [ ] Use group transforms to avoid needing to put x attributes on rectangles
-            * [ ] Generate sensible class names for blocks to permit 
+            * [ ] ~~Use group transforms to avoid needing to put x attributes on rectangles~~
+
+              This as it turns out isn't possible.
+            * [ ] Generate sensible class names for blocks to permit scripting and shit
+            * [ ] Add customization to the chart API
+                * [ ] Colors
+                * [ ] Shapes
+                    * [ ] Circle, radius of each circle on the timeline shows how long it was for.
+                    * [ ] Squares, same as above
+            * [ ] Make it interactive
+                * [ ] User configurable tagging and such, saved somewhere local for convenience later.
+                * [ ] Use websockets to stream updates in a more efficient and pleasing fashion
+                    * Maybe worth using D3 or something.
     * [ ] Better color choosers
         * [ ] Dependent tags
 

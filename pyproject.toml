@@ -8,6 +8,7 @@ authors = ["Violet white <violet.white.dammit@protonmail.com>"]
 python = "^3.9"
 svgwrite = "^1.4.1"
 SQLAlchemy = "^1.4.25"
+CherryPy = "^18.6.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

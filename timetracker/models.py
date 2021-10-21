@@ -4,13 +4,12 @@ import time
 
 import sqlalchemy.orm
 from sqlalchemy import create_engine, Column, Integer, DateTime as DT, ForeignKey, String
-from sqlalchemy.orm import sessionmaker, declarative_base, relationship
+from sqlalchemy.orm import sessionmaker, declarative_base, relationship,scoped_session
 from sqlalchemy.pool import SingletonThreadPool
 
-engine = create_engine('sqlite:///timetracker.db',
-                       poolclass=SingletonThreadPool)
-Session = sessionmaker(engine)
-session = Session()
+engine = create_engine('sqlite:///timetracker.db')
+session = scoped_session(sessionmaker(bind=engine))
+#session = Session()
 Base = declarative_base()
 
 
@@ -59,4 +58,11 @@ class WindowEvent(Base):
         return year, month, day
 
 
-session_object = SessionObject(id=time.monotonic_ns(), date=datetime.datetime.now())
+current_time = time.monotonic_ns()
+
+
+@property
+def session_object():
+    for i in session.query(SessionObject).where(SessionObject.id == current_time):
+        return i
+    return SessionObject(id=current_time)

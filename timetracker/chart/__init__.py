@@ -57,6 +57,7 @@ class ChartPart:
         import copy
         from itertools import chain
         chart: svgwrite.drawing.SVG = drw.add(drw.g())
+
         annotation_color = color_chooser.monokai.lines
         chart.add(drw.rect(insert=(horizontal_offset * cm, height_offset * cm), size=(width * cm, height * cm),
                            fill=color_chooser.monokai.background))
@@ -89,9 +90,9 @@ class ChartPart:
                             stroke=annotation_color))
         # Provide a convenient means to make vertical lines.
         vline = lambda x1, y1, l, **e: drw.line(start=(x1 * cm, y1 * cm), end=(x1 * cm, (y1 + l) * cm), **e)
+        hour = 3600 * scale
         while current <= end_time:
             cx = horizontal_offset + offset + scale * (current - start_time).total_seconds()
-            hour = 3600 * scale
             vticks.add(vline(cx, height_offset, 1, stroke=annotation_color))
             vticks.add(vline(cx + (hour * 3) / 4, height_offset, .25, stroke=annotation_color))
             vticks.add(vline(cx + (hour * 1) / 4, height_offset, .25, stroke=annotation_color))
@@ -117,7 +118,7 @@ class ChartPart:
                         drw.line(
                             start=((offset + horizontal_offset) * cm, (1 + height_offset + (.5 + v) * vscale) * cm),
                             end=(
-                                (horizontal_offset + width - offset) * cm,
+                                (horizontal_offset + width + hour - offset) * cm,
                                 (1 + height_offset + (0.5 + v) * vscale) * cm),
                             stroke=annotation_color,
                             stroke_dasharray="5", stroke_width=".2mm"))
@@ -171,8 +172,36 @@ def grid_iterator(n: int, columns: int, width: float, height: float) -> Iterable
     y = 0
     for i in range(n):
         yield x * width, height * y
-        if x == columns:
+        if x == columns - 1:
             x = 0
             y += 1
         else:
             x += 1
+
+
+class Chart:
+    parts: list[ChartPart]
+    columns: int
+
+    def __init__(self):
+        self.parts = []
+        self.columns = 2
+
+    @staticmethod
+    def from_data(data: list[list[tuple[models.WindowEvent, list[str]]]]):
+        c = Chart()
+        for day in data:
+            c.parts.append(ChartPart(day[0][0].time_start.strftime("%d/%m/%y"), day))
+        return c
+
+    def draw(self, svg):
+
+        mw = 0
+        mh = 0
+        for chart, pos in zip(self.parts, grid_iterator(len(self.parts), self.columns, 40, 30)):
+            print(pos)
+            mw, mh = max(mw, pos[0]), max(mh, pos[1])
+            chart.draw(svg, 40, 30, pos[1], pos[0] + 1 if pos[0] != 0 else 0)
+        svg['height'] = (mh+30) * cm
+        svg['width'] = (mw+40) * cm
+        return svg

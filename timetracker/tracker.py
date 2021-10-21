@@ -40,8 +40,10 @@ def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
     now = datetime.datetime.now()
     later = now + datetime.timedelta(seconds=_SAMPLE_INTERVAL)
     if last and last.window_id == int(v, base=16) and last.window_name == name:
-        last.time_end = later
-        return last
+        if (now - last.time_end).total_seconds() <= 3 * _SAMPLE_INTERVAL:
+            last.time_end = later
+            return last
+        
     result = WindowEvent(window_name=name, window_id=int(v, base=16),
                          time_start=now,
                          time_end=later, session=session_object,
