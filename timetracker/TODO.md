@@ -37,3 +37,12 @@
         * [ ] Keyboard activity detection
 
           Is this possible to do without hooking into something horrible and low level?
+    * [ ] Do it for other platforms. Windows and mac osx should be doable, wayland... maybe not?
+      
+      At least, it'll be more complicated to do for wayland due to the fact it isn't part of the protocol.
+    * [ ] Add color customization
+    * [ ] Permit having the chart data in a specific order
+    * [ ] include option to show all of the data series, even if they are empty.
+    * [ ] Add alternative views other than the rectangle chart
+      * [ ] Pie chart
+      * [ ] Bar chart per hour, showing all tasks

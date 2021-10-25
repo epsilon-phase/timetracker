@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import random
 
@@ -91,6 +93,11 @@ class ChartPart:
         # Provide a convenient means to make vertical lines.
         vline = lambda x1, y1, l, **e: drw.line(start=(x1 * cm, y1 * cm), end=(x1 * cm, (y1 + l) * cm), **e)
         hour = 3600 * scale
+        now = datetime.datetime.now()
+        date = now.date()
+
+
+
         while current <= end_time:
             cx = horizontal_offset + offset + scale * (current - start_time).total_seconds()
             vticks.add(vline(cx, height_offset, 1, stroke=annotation_color))
@@ -99,10 +106,9 @@ class ChartPart:
             vticks.add(
                 vline(cx + hour / 2, height_offset, 0.5, stroke=annotation_color))
             timetext = f"{current.hour}:{current.minute}:{current.second}"
-            textoffset = -0.5 if current != start_time else 0.0
             vticks.add(
-                svgwrite.text.Text(timetext, x=[(cx + textoffset) * cm], y=[(height_offset + 1) * cm],
-                                   fill=annotation_color))
+                svgwrite.text.Text(timetext, x=[cx * cm], y=[(height_offset + 1) * cm],
+                                   fill=annotation_color, font_size=10, text_anchor='middle'))
             current += delta
 
         for index, value in enumerate(self.data):
@@ -130,12 +136,14 @@ class ChartPart:
                                            fill=annotation_color))
                     l.add(svgwrite.text.TSpan(i))
                     l.add(
-                        svgwrite.text.TSpan(f"{round(s, ndigits=2)} seconds", dy=['1.2em'], x=[horizontal_offset * cm]))
+                        svgwrite.text.TSpan(f"{round(s, ndigits=2)} seconds", dy=['1.2em'], x=[horizontal_offset * cm],
+                                            font_size=10))
                 start = v * vscale + height_offset + 1
                 block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
                 startx = (value[0].time_start - start_time).total_seconds() * scale + offset + horizontal_offset
                 r = drw.rect(insert=(startx * cm, start * cm), size=(block_width * cm, vscale * cm),
                              ry=(vscale / 2.0) * cm, rx=0.1 * cm)
+                r['class'] = i
                 if add_titles:
                     r.set_desc(title=value[0].window_name,
                                desc=f"{(value[0].time_end - value[0].time_start).total_seconds()} seconds")
@@ -144,7 +152,10 @@ class ChartPart:
         chart.add(drw.line(start=(horizontal_offset * cm, (height_offset + height) * cm),
                            end=((width + horizontal_offset) * cm, (height_offset + height) * cm),
                            stroke=annotation_color))
-
+        if self.data[0][0].time_start.date() == now.date():
+            s = (now - start_time).total_seconds() * scale + horizontal_offset + offset
+            line=chart.add(vline(s, height_offset + 1, height, stroke='#FF0000'))
+            print("Hehe")
         drw.save()
 
 
@@ -183,25 +194,27 @@ class Chart:
     parts: list[ChartPart]
     columns: int
 
-    def __init__(self):
+    def __init__(self, width: int, height: int):
         self.parts = []
         self.columns = 2
+        self.height = height
+        self.width = width
 
     @staticmethod
-    def from_data(data: list[list[tuple[models.WindowEvent, list[str]]]]):
-        c = Chart()
-        for day in data:
-            c.parts.append(ChartPart(day[0][0].time_start.strftime("%d/%m/%y"), day))
+    def from_data(data: list[list[tuple[models.WindowEvent, list[str]]]], width: int = 20, height: int = 10) -> Chart:
+        c = Chart(width, height)
+        for day in reversed(data):
+            c.parts.append(ChartPart(day[0][0].time_start.strftime("%m/%d/%y"), day))
         return c
 
     def draw(self, svg):
 
         mw = 0
         mh = 0
-        for chart, pos in zip(self.parts, grid_iterator(len(self.parts), self.columns, 40, 30)):
+        for chart, pos in zip(self.parts, grid_iterator(len(self.parts), self.columns, self.width, self.height)):
             print(pos)
             mw, mh = max(mw, pos[0]), max(mh, pos[1])
-            chart.draw(svg, 40, 30, pos[1], pos[0] + 1 if pos[0] != 0 else 0)
-        svg['height'] = (mh+30) * cm
-        svg['width'] = (mw+40) * cm
+            chart.draw(svg, self.width, self.height, pos[1], pos[0] + 1 if pos[0] != 0 else 0)
+        svg['height'] = (mh + self.height) * cm
+        svg['width'] = (mw + self.width) * cm
         return svg

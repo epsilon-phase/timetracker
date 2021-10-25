@@ -2,13 +2,28 @@ import svgwrite
 
 from timetracker import models as models
 from timetracker.report import NameTagger, OrMatcher, AndMatcher, ClassMatcher, process_events
+
+from itertools import groupby
 from typing import *
 import cherrypy
 
+from timetracker import Config
+import timetracker
 
-def group_by(iter: Iterable[Any], func: Callable[[Any], Any]) -> list[list[Any]]:
+Config.add_transform("matchers", input=lambda x: list(map(timetracker.report.from_json, x)),
+                     output=lambda x: list(map(lambda y: y.as_json(), x)))
+
+
+def group_by(iterable: Iterable[Any], func: Callable[[Any], Any]) -> list[list[Any]]:
+    """
+    An independent implementation of itertools.group_by that does the same thing but worse :)
+
+    :param iterable: The iterable to group
+    :param func: The function that returns the key by which to group them
+    :return: a list of lists for each group, sorted by the keys
+    """
     r = {}
-    for i in iter:
+    for i in iterable:
         key = func(i)
         if key not in r.keys():
             r[key] = []
@@ -16,15 +31,22 @@ def group_by(iter: Iterable[Any], func: Callable[[Any], Any]) -> list[list[Any]]
     return [r[k] for k in sorted(r.keys())]
 
 
-def example():
+def example(width: int = 25, height: int = 20):
+    """
+    Generate the example chart configuration, this is from prior to json configurability, so it may not be a relevant example to imitate
+
+    :param width: The width of the chart in centimeters
+    :param height: The height of the chart in centimeters
+    :return: The svg document containing the charts
+    """
     browsermatch = NameTagger('Firefox', ['browser'])
     web = OrMatcher([NameTagger(['Vulpine Club',
                                  'Mastodon'], ['social media', 'mastodon']),
                      NameTagger('Reddit', ['social media', 'reddit']),
                      NameTagger('Stack Overflow', ['documentation']),
                      AndMatcher([browsermatch, NameTagger('Documentation', [])], ['documentation']),
-                     AndMatcher([browsermatch, NameTagger('Gmail', ['email', 'social media'])], []),
-                     AndMatcher([browsermatch, NameTagger('Indeed', ['work search'])], []),
+                     AndMatcher([browsermatch, NameTagger(['Gmail', 'Protonmail'], ['email', 'social media'])], []),
+                     AndMatcher([browsermatch, NameTagger(['Indeed'], ['work search'])], []),
                      NameTagger('— Python', ['documentation', 'python'])], [])
     programming = OrMatcher([NameTagger('.py', ['python']),
                              AndMatcher([NameTagger('timetracker', ['timetracker']),
@@ -36,44 +58,42 @@ def example():
     gemcraft = NameTagger('GemCraft', ['Games'])
     telegram = NameTagger('Telegram', ['social media', 'chat'])
     terminal = ClassMatcher('kitty', ['terminal'])
-    m = [browsermatch, web, programming, gemcraft, telegram, NameTagger('Discord', ['social media', 'chat']), terminal,
-         NameTagger('LyX', ['writing'])]
+    v = Config.get("matchers", None) is None
+    m = Config.get("matchers", None) or [browsermatch, web, programming, gemcraft, telegram,
+                                         NameTagger('Discord', ['social media', 'chat']), terminal,
+                                         NameTagger('LyX', ['writing'])]
+    if v:
+        Config.set("matchers", m)
     r = process_events(m, models.session.query(models.WindowEvent))
 
     import timetracker.chart as chart
     eg = svgwrite.Drawing('example.svg')
-    offset = 0
-    x = group_by(r, lambda x: x[0].date_of())
-    from svgwrite import cm
-    mw = 0
-    mh = 0
-    cc=chart.Chart.from_data(x)
+    x = group_by(r, lambda z: z[0].date_of())
+    cc = chart.Chart.from_data(x, height=height, width=width)
     cc.draw(eg)
-    # for day, pos in zip(x, chart.grid_iterator(len(x), 2, 40, 30)):
-    #     print(pos)
-    #     mw, mh = max(mw, pos[0]), max(mh, pos[1])
-    #     print(day[0][0].date_of())
-    #     c = chart.ChartPart(day[0][0].time_start.strftime("%d/%m/%y"), day)
-    #     c.draw(eg, 40, 30, pos[1], pos[0] + 1 if pos[0] != 0 else 0)
-    #     offset += 30
-    # eg['height'] = f"{31 + mh}cm"
-    # eg['width'] = f'{mw + 40 + 2}cm'
-    eg['style'] = 'background-color:#2e2e2e'
     return eg
 
 
 class Hoster:
     @cherrypy.expose
-    def index(self):
-        ex = example()
+    def index(self, width: float = 25, height: float = 20):
+        """
+        This is the method that serves the chart up to the browser/whatever asks for it.
+        :param width: The width of each chart in centimeters
+        :param height: The height of each chart in centimeters
+        :return: str
+        """
+        ex = example(width=float(width), height=float(height))
         script = ex.script(content="setTimeout(function(){location.reload();},30000);")
         script['type'] = 'text/javascript'
         ex.add(script)
+        cherrypy.response.headers['no-cache'] = 1
         return str(ex.tostring())
 
 
 def host():
     cherrypy.quickstart(Hoster(), '')
+
 
 if __name__ == '__main__':
     host()

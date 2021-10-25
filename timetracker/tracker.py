@@ -1,13 +1,19 @@
 from __future__ import annotations
 import subprocess
+import sys
 from typing import *
 import datetime
 import time
 
 from timetracker.models import engine, session, Base, WindowClass, WindowEvent, session_object
+import timetracker.models as models
+
+from timetracker import Config
+
+import libinput
 
 _IDLE_TIMES = 30
-_SAMPLE_INTERVAL = 10
+_SAMPLE_INTERVAL: float = Config.get("sample_interval", 10)
 
 Base.metadata.create_all(engine)
 
@@ -24,15 +30,16 @@ def GetEventClasses(wmclass: str) -> WindowClass:
 
 
 def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
+    encoding = sys.getfilesystemencoding()
     v = subprocess.Popen(["xprop",
                           "-root",
                           "_NET_ACTIVE_WINDOW"],
-                         stdout=subprocess.PIPE).communicate()[0].strip().split()[-1].decode('utf-8')
+                         stdout=subprocess.PIPE).communicate()[0].strip().split()[-1].decode(sys.getdefaultencoding())
     name = subprocess.Popen([b"xprop", b"-id",
                              v, b"WM_NAME"],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE) \
-               .communicate()[0].strip().split(b'"', 1)[-1][:-1].decode('utf8')
+               .communicate()[0].strip().split(b'"', 1)[-1][:-1].decode()
     wclass = subprocess.Popen(['xprop', '-id', v, 'WM_CLASS'], stdout=subprocess.PIPE).communicate()[0].split(b'"', 1)[
         -1].decode('utf-8')
     wclass = set(map(lambda x: x.replace('"', '').strip(), wclass.split(',')))
@@ -43,10 +50,10 @@ def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
         if (now - last.time_end).total_seconds() <= 3 * _SAMPLE_INTERVAL:
             last.time_end = later
             return last
-        
+
     result = WindowEvent(window_name=name, window_id=int(v, base=16),
                          time_start=now,
-                         time_end=later, session=session_object,
+                         time_end=later, session=models.session_object(),
                          classes=wclass)
     return result
 
@@ -59,28 +66,28 @@ def GetMouseLocation() -> tuple[int, int]:
 
 
 def track():
+    """
+    Start tracking the window usage of the system.
+    :return: None
+    """
     last = None
     c = 0
-    last_pos = GetMouseLocation()
-    while True:
-        current_pos = GetMouseLocation()
-        if current_pos == last_pos:
-            c += 1
-        else:
-            c = 0
-            last_pos = current_pos
-        if c >= _IDLE_TIMES:
-            print(f"No movement for {_SAMPLE_INTERVAL * c} seconds, pausing sampling until activity")
-            # Forget the former activity, we'll have to note it
-            # individually later anyway
-            last = None
-            time.sleep(_SAMPLE_INTERVAL)
-            continue
-        current = GetActiveWindowTitle(last)
-        if current:
-            session.add(current)
-            if last != current:
-                print("new event")
-                last = current
-        session.commit()
-        time.sleep(_SAMPLE_INTERVAL)
+    context = libinput.LibInput(context_type=libinput.constant.ContextType.UDEV)
+    context.assign_seat('seat0')
+    event = context.events
+    last_time = datetime.datetime.now()-datetime.timedelta(seconds=20)
+    for i in event:
+        if i.type.is_pointer() or i.type.is_keyboard:
+            elapsed = (datetime.datetime.now() - last_time).total_seconds()
+            if elapsed >= _SAMPLE_INTERVAL * 3 and last:
+                print(f"No movement for {elapsed} seconds")
+                last = None
+            # Debounce the command invocation, as this could get very expensive if it is called on each event
+            if elapsed >= _SAMPLE_INTERVAL:
+                current = GetActiveWindowTitle(last)
+                session.add(current)
+                last_time = datetime.datetime.now()
+                print("Adding event")
+                session.commit()
+                if last != current:
+                    last = current
