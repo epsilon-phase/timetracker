@@ -87,7 +87,9 @@ def track():
                 current = GetActiveWindowTitle(last)
                 session.add(current)
                 last_time = datetime.datetime.now()
-                print("Adding event")
                 session.commit()
                 if last != current:
+                    print("New event")
                     last = current
+                else:
+                    print("old event")

@@ -4,8 +4,19 @@ from typing import *
 
 
 class Matcher:
+    """
+    Base class for the various matchers.
+
+    Provides some useful functions to build upon.
+    """
 
     def match_string(self, matcher, string) -> bool:
+        """
+        Handle matching the string with whatever the matcher is.
+        :param matcher: The matcher object, a list of regexes, strings, etc.
+        :param string: The string to match against
+        :return: If the string matches
+        """
         if isinstance(matcher, list):
             return any(map(lambda x: self.match_string(x, string), matcher))
         elif isinstance(matcher, re.Pattern):
@@ -19,12 +30,24 @@ class Matcher:
         m = self.matcher
         if issubclass(type(self.matcher[0]), Matcher):
             m = list(map(lambda x: x.as_json(), m))
+        else:
+            r = []
+            for i, v in enumerate(m):
+                if isinstance(v, re.Pattern):
+                    r.append({'type': 'regex', 'value': v.pattern})
+                else:
+                    r.append(v)
+            m = r
         return {'type': t,
                 'matcher': m,
                 'tags': self.tags if self.tags else []}
 
 
 class NameTagger(Matcher):
+    """
+    Provides matching on the :attribute:`WindowEvent.window_name`_. by the window's name
+
+    """
     __slots__ = ['matcher', 'tags', 'case_sensitive']
     matcher: Union[str, re.Pattern]
     tags: list[str]
@@ -81,7 +104,7 @@ class AndMatcher(CompoundMatcher):
         for (matches, tags) in l:
             if not matches or tags is None:
                 continue
-            # Take the union of all submatcher tags.
+            # Take the union of all subordinate matching tags.
             t.extend(tags)
         return all(map(lambda x: x[0], l)), t
 
@@ -137,7 +160,8 @@ def from_json(obj: dict) -> Matcher:
     MatcherType = __types[match_type]
     if issubclass(MatcherType, CompoundMatcher):
         return MatcherType(list(map(from_json, obj['matcher'])), obj['tags'])
-    return MatcherType(obj['matcher'], obj['tags'] if 'tags' in obj.keys() else [])
+    return MatcherType([re.compile(i['value']) if isinstance(i, dict) else i for i in obj['matcher']] if isinstance(obj['matcher'],list) else obj['matcher'],
+                       obj['tags'] if 'tags' in obj.keys() else [])
 
 
 def process_events(matchers, events: Iterable[models.WindowEvent]) -> list[tuple[models.WindowEvent, list[str]]]:
