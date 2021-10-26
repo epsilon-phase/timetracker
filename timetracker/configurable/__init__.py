@@ -11,6 +11,12 @@ from xdg import xdg_config_home
 
 
 class ConfigTransform:
+    """
+    Holds functions for serializing and deserializing objects
+
+    :ivar output: Converts an instance of an object to a json representation
+    :ivar callable input: Converts an instance of json representation into the class.
+    """
     __slots__ = ['input', 'output']
     input: Callable
     output: Callable
@@ -25,6 +31,12 @@ def identity(obj):
 
 
 class ConfigStore:
+    """
+    a dictionary backed by a json configuration file.
+
+    :ivar data: The json structure possessed
+    :ivar transformers:
+    """
     data: dict
     transformers: dict[str, ConfigTransform]
 
@@ -41,7 +53,7 @@ class ConfigStore:
                 self.data = json.load(f)
             except json.JSONDecodeError:
                 print("Failed :/")
-                self.data={}
+                self.data = {}
 
     def get(self, key, default):
         if key in self.transformers.keys() and key in self.data.keys():
@@ -58,7 +70,7 @@ class ConfigStore:
         print(repr(self.data))
         with open(self.file, 'w') as f:
             try:
-                s=json.dumps(self.data)
+                s = json.dumps(self.data)
                 f.write(s)
             except IOError:
                 print("Fuck")

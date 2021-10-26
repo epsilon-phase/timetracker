@@ -1,3 +1,7 @@
+"""
+This is an implemntation of the chart generation that the `timetracker.examplereport`_ uses.
+It is written from scratch because I didn't feel like figuring out how to get matplotlib to do it.
+"""
 from __future__ import annotations
 
 import datetime
@@ -110,7 +114,6 @@ class ChartPart:
         hour = 3600 * scale
         now = datetime.datetime.now()
 
-
         while current <= end_time:
             cx = horizontal_offset + offset + scale * (current - start_time).total_seconds()
             vticks.add(vline(cx, height_offset, 1, stroke=annotation_color))
@@ -208,8 +211,12 @@ class Chart:
     """
     columns: int
     """
+    The number of columns that the chart will have
     """
     show_titles: bool
+    """
+    Whether or not to display the window names of the event.
+    """
 
     def __init__(self, width: int, height: int, show_titles: bool = False):
         self.parts = []

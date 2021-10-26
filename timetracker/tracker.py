@@ -1,19 +1,23 @@
 from __future__ import annotations
 import subprocess
 import sys
+from functools import cached_property
 from typing import *
 import datetime
 import time
 
+import timetracker.common
 from timetracker.models import engine, session, Base, WindowClass, WindowEvent, session_object
 import timetracker.models as models
-
-from timetracker import Config
 
 import libinput
 
 _IDLE_TIMES = 30
-_SAMPLE_INTERVAL: float = Config.get("sample_interval", 10)
+@cached_property
+def _SAMPLE_INTERVAL()->float:
+    import timetracker
+    return timetracker.common.Config.get('sample_interval', 10)
+#_SAMPLE_INTERVAL: float = Config.get("sample_interval", 10)
 
 Base.metadata.create_all(engine)
 
@@ -70,12 +74,15 @@ def track():
     Start tracking the window usage of the system.
     :return: None
     """
+    import timetracker
+    global Config
+    Config = timetracker.common.Config
     last = None
     c = 0
     context = libinput.LibInput(context_type=libinput.constant.ContextType.UDEV)
     context.assign_seat('seat0')
     event = context.events
-    last_time = datetime.datetime.now()-datetime.timedelta(seconds=20)
+    last_time = datetime.datetime.now() - datetime.timedelta(seconds=20)
     for i in event:
         if i.type.is_pointer() or i.type.is_keyboard:
             elapsed = (datetime.datetime.now() - last_time).total_seconds()

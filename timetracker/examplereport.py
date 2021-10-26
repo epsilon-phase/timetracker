@@ -1,3 +1,10 @@
+"""
+Implements a mostly complete example of how one might use the timetracker report system to
+generate charts and present them to the user.
+
+
+"""
+
 import svgwrite
 
 from timetracker import models as models
@@ -7,7 +14,7 @@ from itertools import groupby
 from typing import *
 import cherrypy
 
-from timetracker import Config
+from timetracker.common import Config
 import timetracker
 
 Config.add_transform("matchers", input=lambda x: list(map(timetracker.report.from_json, x)),
@@ -31,7 +38,7 @@ def group_by(iterable: Iterable[Any], func: Callable[[Any], Any]) -> list[list[A
     return [r[k] for k in sorted(r.keys())]
 
 
-def example(width: int = 25, height: int = 20, show_titles:bool=False):
+def example(width: int = 25, height: int = 20, show_titles: bool = False):
     """
     Generate the example chart configuration, this is from prior to json configurability, so it may not be a relevant example to imitate
 
@@ -77,7 +84,7 @@ def example(width: int = 25, height: int = 20, show_titles:bool=False):
 
 class Hoster:
     @cherrypy.expose
-    def index(self, width: float = 25, height: float = 20, show_titles:bool=False):
+    def index(self, width: float = 25, height: float = 20, show_titles: bool = False):
         """
         This is the method that serves the chart up to the browser/whatever asks for it.
         :param width: The width of each chart in centimeters
@@ -85,7 +92,7 @@ class Hoster:
         :param show_titles: Whether or not to show the window titles in the chart's alt-texts
         :return: The page
         """
-        ex = example(width=float(width), height=float(height),show_titles=show_titles)
+        ex = example(width=float(width), height=float(height), show_titles=show_titles)
         script = ex.script(content="setTimeout(function(){location.reload();},30000);")
         script['type'] = 'text/javascript'
         ex.add(script)
