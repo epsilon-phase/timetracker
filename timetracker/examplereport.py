@@ -31,7 +31,7 @@ def group_by(iterable: Iterable[Any], func: Callable[[Any], Any]) -> list[list[A
     return [r[k] for k in sorted(r.keys())]
 
 
-def example(width: int = 25, height: int = 20):
+def example(width: int = 25, height: int = 20, show_titles:bool=False):
     """
     Generate the example chart configuration, this is from prior to json configurability, so it may not be a relevant example to imitate
 
@@ -69,21 +69,23 @@ def example(width: int = 25, height: int = 20):
     import timetracker.chart as chart
     eg = svgwrite.Drawing('example.svg')
     x = group_by(r, lambda z: z[0].date_of())
-    cc = chart.Chart.from_data(x, height=height, width=width)
+    cc = chart.Chart.from_data(x, height=height, width=width, show_titles=show_titles)
+
     cc.draw(eg)
     return eg
 
 
 class Hoster:
     @cherrypy.expose
-    def index(self, width: float = 25, height: float = 20):
+    def index(self, width: float = 25, height: float = 20, show_titles:bool=False):
         """
         This is the method that serves the chart up to the browser/whatever asks for it.
         :param width: The width of each chart in centimeters
         :param height: The height of each chart in centimeters
-        :return: str
+        :param show_titles: Whether or not to show the window titles in the chart's alt-texts
+        :return: The page
         """
-        ex = example(width=float(width), height=float(height))
+        ex = example(width=float(width), height=float(height),show_titles=show_titles)
         script = ex.script(content="setTimeout(function(){location.reload();},30000);")
         script['type'] = 'text/javascript'
         ex.add(script)

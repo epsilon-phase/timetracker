@@ -133,14 +133,24 @@ class OrMatcher(CompoundMatcher):
 
 
 class NotMatcher(CompoundMatcher):
-    __slots__ = ['matchers', 'tags']
+    """
+    Matches a window that does not contain any of the submatchers.
+    This is probably most useful in combination with other compound matchers to add additional
+    discrimination ability
+    """
+    __slots__ = ['matcher', 'tags']
 
     def __init__(self, matches, tags):
-        self.matchers = matches or []
+        """
+
+        :param matches: The constituent matchers that should not match
+        :param tags: The tags produced on a successful match
+        """
+        self.matcher = matches or []
         self.tags = tags or []
 
     def matches(self, event) -> tuple[bool, list[str]]:
-        evtmatch = list(map(lambda x: (x.matches(event)), self.matchers))
+        evtmatch = list(map(lambda x: (x.matches(event)), self.matcher))
         if any(evtmatch):
             return False, self.tags
         else:

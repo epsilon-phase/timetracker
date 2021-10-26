@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import random
 
 import svgwrite
 from .. import models
@@ -22,6 +21,12 @@ class ChartPart:
     title: str
 
     def __init__(self, title: str, data: list[tuple[models.WindowEvent, list[str]]], cc=color_chooser.monokai):
+        """
+        Create a new chartpart.
+        :param title: The title applied to the chart
+        :param data: The data contained within
+        :param cc: The color chooser/palette
+        """
         self.title = title
         self.data = data.copy()
         self.data.sort(key=lambda x: x[0].time_end)
@@ -43,7 +48,7 @@ class ChartPart:
         return self.color_chooser.choose(self.tagindex[tag])
 
     def draw(self, drw: svgwrite.Drawing, width: float, height: float, height_offset, horizontal_offset,
-             add_titles: bool = False) -> None:
+             show_titles: bool = False) -> None:
         """
         Draw the chart
         :param drw: The svg drawing
@@ -51,7 +56,7 @@ class ChartPart:
         :param height: The height of the chart part in centimeters
         :param height_offset: The vertical offset in centimeters
         :param horizontal_offset: The horizontal offset in centimeters
-        :param add_titles: Add titles to the blocks, providing mouseovers displaying the window titles.
+        :param show_titles: Add titles to the blocks, providing mouseovers displaying the window titles.
         :return: None
         """
         from . import color_chooser
@@ -90,12 +95,20 @@ class ChartPart:
         vticks.add(drw.line(start=((offset + horizontal_offset) * cm, height_offset * cm),
                             end=((horizontal_offset + offset) * cm, (height_offset + height) * cm),
                             stroke=annotation_color))
+
         # Provide a convenient means to make vertical lines.
-        vline = lambda x1, y1, l, **e: drw.line(start=(x1 * cm, y1 * cm), end=(x1 * cm, (y1 + l) * cm), **e)
+        def vline(x1, y1, **e):
+            """
+
+            :param x1: The starting X position
+            :param y1: the starting y position
+            :param e: the keyword arguments you want to pass along to the line method
+            :return: The line entity
+            """
+            return drw.line(start=(x1 * cm, y1 * cm), end=(x1 * cm, (y1 + l) * cm), **e)
+
         hour = 3600 * scale
         now = datetime.datetime.now()
-        date = now.date()
-
 
 
         while current <= end_time:
@@ -144,7 +157,7 @@ class ChartPart:
                 r = drw.rect(insert=(startx * cm, start * cm), size=(block_width * cm, vscale * cm),
                              ry=(vscale / 2.0) * cm, rx=0.1 * cm)
                 r['class'] = i
-                if add_titles:
+                if show_titles:
                     r.set_desc(title=value[0].window_name,
                                desc=f"{(value[0].time_end - value[0].time_start).total_seconds()} seconds")
                 block_groups[i].add(r)
@@ -154,9 +167,7 @@ class ChartPart:
                            stroke=annotation_color))
         if self.data[0][0].time_start.date() == now.date():
             s = (now - start_time).total_seconds() * scale + horizontal_offset + offset
-            line=chart.add(vline(s, height_offset + 1, height, stroke='#FF0000'))
-            print("Hehe")
-        drw.save()
+            line = chart.add(vline(s, height_offset + 1, height, stroke='#FF0000'))
 
 
 def test():
@@ -192,29 +203,46 @@ def grid_iterator(n: int, columns: int, width: float, height: float) -> Iterable
 
 class Chart:
     parts: list[ChartPart]
+    """
+    The component sub charts.
+    """
     columns: int
+    """
+    """
+    show_titles: bool
 
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, show_titles: bool = False):
         self.parts = []
         self.columns = 2
         self.height = height
         self.width = width
+        self.show_titles = show_titles
 
     @staticmethod
-    def from_data(data: list[list[tuple[models.WindowEvent, list[str]]]], width: int = 20, height: int = 10) -> Chart:
-        c = Chart(width, height)
+    def from_data(data: list[list[tuple[models.WindowEvent, list[str]]]], width: int = 20, height: int = 10,
+                  show_titles=False) -> Chart:
+        """
+        Convert a grouped list of data and labels into a series of charts of a given size.
+        :param data: The list of lists of data
+        :param width: The width in centimeters
+        :param height: The height in centimeters
+        :param show_titles: Add alt text to the data rectangles, this is a potentially unwanted information leak, so it is disabled by default
+        :return: The resulting compound chart
+        """
+        c = Chart(width, height, show_titles)
         for day in reversed(data):
             c.parts.append(ChartPart(day[0][0].time_start.strftime("%m/%d/%y"), day))
         return c
 
     def draw(self, svg):
 
-        mw = 0
-        mh = 0
+        mw = self.width * min(self.columns, len(self.parts))
+        mh = self.height * max(len(self.parts) // self.columns, 1)
         for chart, pos in zip(self.parts, grid_iterator(len(self.parts), self.columns, self.width, self.height)):
             print(pos)
-            mw, mh = max(mw, pos[0]), max(mh, pos[1])
-            chart.draw(svg, self.width, self.height, pos[1], pos[0] + 1 if pos[0] != 0 else 0)
-        svg['height'] = (mh + self.height) * cm
-        svg['width'] = (mw + self.width) * cm
+            # mw, mh = max(mw, pos[0]), max(mh, pos[1])
+            chart.draw(svg, self.width, self.height, pos[1], pos[0] + 1 if pos[0] != 0 else 0,
+                       show_titles=self.show_titles)
+        svg['height'] = (mh) * cm
+        svg['width'] = (mw + self.columns) * cm
         return svg
