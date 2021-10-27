@@ -299,6 +299,14 @@ python-versions = ">=3.6"
 diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
+name = "pysqlcipher3"
+version = "1.0.4"
+description = "DB-API 2.0 interface for SQLCIPHER 3.x"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "pytest"
 version = "5.4.3"
 description = "pytest: simple powerful testing with Python"
@@ -579,7 +587,7 @@ test = ["zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "0837c7af6190db4af91c8649519173492038c0e831d02d9c3dd6010dae770758"
+content-hash = "51f4e7b7d396395443312ab9eb94601e255eed83abb6751fdb21cf59f778845e"
 
 [metadata.files]
 alabaster = [
@@ -800,6 +808,9 @@ pygments = [
 pyparsing = [
     {file = "pyparsing-3.0.1-py3-none-any.whl", hash = "sha256:fd93fc45c47893c300bd98f5dd1b41c0e783eaeb727e7cea210dcc09d64ce7c3"},
     {file = "pyparsing-3.0.1.tar.gz", hash = "sha256:84196357aa3566d64ad123d7a3c67b0e597a115c4934b097580e5ce220b91531"},
+]
+pysqlcipher3 = [
+    {file = "pysqlcipher3-1.0.4.tar.gz", hash = "sha256:75d6b9d023d7ab76c841f97fd9d108d87516e281268e61518411d08cb7062663"},
 ]
 pytest = [
     {file = "pytest-5.4.3-py3-none-any.whl", hash = "sha256:5c0db86b698e8f170ba4582a492248919255fcd4c79b1ee64ace34301fb589a1"},

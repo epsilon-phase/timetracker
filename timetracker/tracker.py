@@ -12,12 +12,8 @@ import timetracker.models as models
 
 import libinput
 
-_IDLE_TIMES = 30
-@cached_property
-def _SAMPLE_INTERVAL()->float:
-    import timetracker
-    return timetracker.common.Config.get('sample_interval', 10)
-#_SAMPLE_INTERVAL: float = Config.get("sample_interval", 10)
+_IDLE_TIMES = timetracker.common.Config.get('idle_times', 30)
+_SAMPLE_INTERVAL = timetracker.common.Config.get('sample_interval', 4)
 
 Base.metadata.create_all(engine)
 
@@ -34,7 +30,6 @@ def GetEventClasses(wmclass: str) -> WindowClass:
 
 
 def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
-    encoding = sys.getfilesystemencoding()
     v = subprocess.Popen(["xprop",
                           "-root",
                           "_NET_ACTIVE_WINDOW"],
@@ -75,20 +70,29 @@ def track():
     :return: None
     """
     import timetracker
-    global Config
-    Config = timetracker.common.Config
+    from math import sqrt
     last = None
     c = 0
     context = libinput.LibInput(context_type=libinput.constant.ContextType.UDEV)
     context.assign_seat('seat0')
     event = context.events
     last_time = datetime.datetime.now() - datetime.timedelta(seconds=20)
+    accumulated_motion = 0
+    accumulated_keys = 0
     for i in event:
         if i.type.is_pointer() or i.type.is_keyboard:
             elapsed = (datetime.datetime.now() - last_time).total_seconds()
             if elapsed >= _SAMPLE_INTERVAL * 3 and last:
                 print(f"No movement for {elapsed} seconds")
                 last = None
+                accumulated_keys = 0
+                accumulated_motion = 0
+            if i.type.is_pointer() and i.type == libinput.EventType.POINTER_MOTION and last:
+                if not last.mouse_motion:
+                    last.mouse_motion = 0.0
+                accumulated_motion += sum(map(lambda x: x ** 2, i.delta_unaccelerated))
+            elif last and i.type == libinput.EventType.KEYBOARD_KEY and i.key_state == libinput.KeyState.PRESSED:
+                accumulated_keys += 1 + i.seat_key_count
             # Debounce the command invocation, as this could get very expensive if it is called on each event
             if elapsed >= _SAMPLE_INTERVAL:
                 current = GetActiveWindowTitle(last)
@@ -100,3 +104,7 @@ def track():
                     last = current
                 else:
                     print("old event")
+                last.mouse_motion = (last.mouse_motion or 0) + accumulated_motion
+                last.keystrokes = (last.keystrokes or 0) + accumulated_keys
+                print(f"Accumulated {accumulated_motion} movement, {accumulated_keys} keys")
+                accumulated_keys, accumulated_motion = 0, 0

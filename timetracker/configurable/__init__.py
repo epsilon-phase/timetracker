@@ -8,7 +8,7 @@ from typing import *
 import json
 
 from xdg import xdg_config_home
-
+from functools import lru_cache
 
 class ConfigTransform:
     """
@@ -55,6 +55,7 @@ class ConfigStore:
                 print("Failed :/")
                 self.data = {}
 
+    @lru_cache(10)
     def get(self, key, default):
         if key in self.transformers.keys() and key in self.data.keys():
             return self.transformers[key].input(self.data[key])
@@ -64,7 +65,7 @@ class ConfigStore:
             return default
 
     def set(self, key: str, value):
-
+        ConfigStore.get.cache_clear()
         if key in self.transformers.keys():
             self.data[key] = self.transformers[key].output(value)
         print(repr(self.data))
@@ -76,4 +77,5 @@ class ConfigStore:
                 print("Fuck")
 
     def add_transform(self, name: str, input: Callable = identity, output: Callable = identity) -> None:
+        ConfigStore.get.cache_clear()
         self.transformers[name] = ConfigTransform(input, output)

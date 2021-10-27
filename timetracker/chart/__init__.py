@@ -1,5 +1,5 @@
 """
-This is an implemntation of the chart generation that the `timetracker.examplereport`_ uses.
+This is an implemntation of the chart generation that the :py:mod:`timetracker.examplereport` uses.
 It is written from scratch because I didn't feel like figuring out how to get matplotlib to do it.
 """
 from __future__ import annotations
@@ -45,7 +45,7 @@ class ChartPart:
         """
         Obtain a color that is consistent for a given tag with a given style
         :param tag: The tag to color
-        :returns: The hex of the color.
+        :returns: The hex code of the color.
         """
         if tag not in self.tagindex.keys():
             self.tagindex[tag] = hash(tag)
@@ -101,7 +101,7 @@ class ChartPart:
                             stroke=annotation_color))
 
         # Provide a convenient means to make vertical lines.
-        def vline(x1, y1, **e):
+        def vline(x1, y1, l, **e):
             """
 
             :param x1: The starting X position
@@ -144,15 +144,22 @@ class ChartPart:
                                 (1 + height_offset + (0.5 + v) * vscale) * cm),
                             stroke=annotation_color,
                             stroke_dasharray="5", stroke_width=".2mm"))
-                    f = filter(lambda x: i in x[1], self.data)
+                    f = list(filter(lambda x: i in x[1], self.data))
                     s = sum(map(lambda x: (x[0].time_end - x[0].time_start).total_seconds(), f))
+                    total_strokes = sum(map(lambda x: x[0].keystrokes if x[0].keystrokes else 0, f))
                     l = labels.add(
                         svgwrite.text.Text("", x=[horizontal_offset * cm],
                                            y=[(v * vscale + vscale / 2.0 + height_offset + 1) * cm],
                                            fill=annotation_color))
                     l.add(svgwrite.text.TSpan(i))
+                    addendum = f"{round(s, ndigits=2)} seconds"
+
                     l.add(
-                        svgwrite.text.TSpan(f"{round(s, ndigits=2)} seconds", dy=['1.2em'], x=[horizontal_offset * cm],
+                        svgwrite.text.TSpan(addendum, dy=['1.2em'], x=[horizontal_offset * cm],
+                                            font_size=10))
+                    if show_titles:
+                        addendum = f'{total_strokes} keypresses'
+                        l.add(svgwrite.text.TSpan(addendum, dy=['1.2em'], x=[horizontal_offset * cm],
                                             font_size=10))
                 start = v * vscale + height_offset + 1
                 block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
@@ -161,8 +168,14 @@ class ChartPart:
                              ry=(vscale / 2.0) * cm, rx=0.1 * cm)
                 r['class'] = i
                 if show_titles:
-                    r.set_desc(title=value[0].window_name,
+                    addend = ""
+                    if value[0].keystrokes:
+                        addend += f"{value[0].keystrokes} keystrokes"
+                    if value[0].mouse_motion:
+                        addend += f'  {round(value[0].mouse_motion, ndigits=2)} pixels moved'
+                    r.set_desc(title=f"{value[0].window_name} {addend}",
                                desc=f"{(value[0].time_end - value[0].time_start).total_seconds()} seconds")
+
                 block_groups[i].add(r)
 
         chart.add(drw.line(start=(horizontal_offset * cm, (height_offset + height) * cm),

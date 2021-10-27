@@ -45,7 +45,7 @@ class Matcher:
 
 class NameTagger(Matcher):
     """
-    Provides matching on the :attribute:`WindowEvent.window_name`_. by the window's name
+    Provides matching on the :py:attr:`timetracker.models.WindowEvent.window_name`. by the window's name
 
     """
     __slots__ = ['matcher', 'tags', 'case_sensitive']
@@ -72,7 +72,7 @@ class ClassMatcher(Matcher):
     tags: Optional[list[str]]
 
     def __init__(self, matcher: Union[str, re.Pattern], tags: Optional[list[str]], case_sensitive=False):
-        super(Matcher, self).__init__()
+        super().__init__()
         self.matcher = matcher
         self.tags = tags
         self.case_sensitive = case_sensitive
@@ -90,6 +90,11 @@ class CompoundMatcher(Matcher):
 
 
 class AndMatcher(CompoundMatcher):
+    """
+    Matches against a group of matchers, only matching if every submatcher matches.
+
+    Concatenates subtags.
+    """
     __slots__ = ['matcher', 'tags']
     tags: Optional[list[str]]
 
@@ -113,6 +118,11 @@ class AndMatcher(CompoundMatcher):
 
 
 class OrMatcher(CompoundMatcher):
+    """
+    Matches when any of the submatchers match
+
+    Concatenates submatcher tags.
+    """
     __slots__ = ['matcher', 'tags']
     tags: list[str]
 
@@ -170,8 +180,11 @@ def from_json(obj: dict) -> Matcher:
     MatcherType = __types[match_type]
     if issubclass(MatcherType, CompoundMatcher):
         return MatcherType(list(map(from_json, obj['matcher'])), obj['tags'])
-    return MatcherType([re.compile(i['value']) if isinstance(i, dict) else i for i in obj['matcher']] if isinstance(obj['matcher'],list) else obj['matcher'],
-                       obj['tags'] if 'tags' in obj.keys() else [])
+    return MatcherType(
+        [re.compile(i['value']) if isinstance(i, dict) else i for i in obj['matcher']] if isinstance(obj['matcher'],
+                                                                                                     list) else obj[
+            'matcher'],
+        obj['tags'] if 'tags' in obj.keys() else [])
 
 
 def process_events(matchers, events: Iterable[models.WindowEvent]) -> list[tuple[models.WindowEvent, list[str]]]:
