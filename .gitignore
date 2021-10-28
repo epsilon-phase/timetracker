@@ -4,3 +4,4 @@
 timetracker.build
 timetracker.dist
 dist
+htmlcov

@@ -64,8 +64,6 @@ class ChartPart:
         :return: None
         """
         from . import color_chooser
-        from functools import reduce
-        import copy
         from itertools import chain
         chart: svgwrite.drawing.SVG = drw.add(drw.g())
 
@@ -160,7 +158,7 @@ class ChartPart:
                     if show_titles:
                         addendum = f'{total_strokes} keypresses'
                         l.add(svgwrite.text.TSpan(addendum, dy=['1.2em'], x=[horizontal_offset * cm],
-                                            font_size=10))
+                                                  font_size=10))
                 start = v * vscale + height_offset + 1
                 block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
                 startx = (value[0].time_start - start_time).total_seconds() * scale + offset + horizontal_offset
@@ -175,7 +173,6 @@ class ChartPart:
                         addend += f'  {round(value[0].mouse_motion, ndigits=2)} pixels moved'
                     r.set_desc(title=f"{value[0].window_name} {addend}",
                                desc=f"{(value[0].time_end - value[0].time_start).total_seconds()} seconds")
-
                 block_groups[i].add(r)
 
         chart.add(drw.line(start=(horizontal_offset * cm, (height_offset + height) * cm),
@@ -192,8 +189,8 @@ def test():
                                                time_end=datetime.datetime.now() + delta * i),
                             ["hello" + str(j) for j in range(i + 1)]) for i in
                            range(1, 8)])
-    drw = svgwrite.Drawing("Hello.svg")
-    chart.draw(drw, 15, 10, 0)
+    drw = svgwrite.Drawing()
+    chart.draw(drw, 15, 10, 0, 0)
 
 
 def grid_iterator(n: int, columns: int, width: float, height: float) -> Iterable[tuple[float, float]]:
@@ -263,6 +260,6 @@ class Chart:
             # mw, mh = max(mw, pos[0]), max(mh, pos[1])
             chart.draw(svg, self.width, self.height, pos[1], pos[0] + 1 if pos[0] != 0 else 0,
                        show_titles=self.show_titles)
-        svg['height'] = (mh) * cm
+        svg['height'] = mh * cm
         svg['width'] = (mw + self.columns) * cm
         return svg

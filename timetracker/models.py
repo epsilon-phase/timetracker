@@ -57,7 +57,7 @@ class WindowClass(Base):
 class EventClass(Base):
     "The association between `WindowEvent` and `WindowClass`"
     __tablename__ = 'EventClass'
-    event_id = Column(Integer, ForeignKey('WindowEvent.id'), primary_key=True)
+    event_id = Column(Integer, ForeignKey('WindowEvent.id', ondelete='cascade'), primary_key=True)
     class_id = Column(Integer, ForeignKey('WindowClass.id'), primary_key=True)
 
 
@@ -86,6 +86,35 @@ class WindowEvent(Base):
     "The number of pixels that the mouse pointer has traversed"
     keystrokes = Column(Integer, default=None)
     "The number of keypresses recorded"
+
+    def should_merge(self, b: WindowEvent, threshold: int):
+        return b.window_name != self.window_name and \
+               (b.time_start - self.time_end).total_seconds() < threshold
+
+    def merge(self, b: WindowEvent, threshold: int = 10):
+        self.time_end = b.time_end
+        self.keystrokes = (self.keystrokes or 0) + (b.keystrokes or 0)
+        self.mouse_motion = (self.mouse_motion or 0.0) + (b.mouse_motion or 0.0)
+
+    @staticmethod
+    def mergeWithin(ses: sqlalchemy.orm.Session, threshold: int) -> int:
+        from sqlalchemy.orm import aliased
+
+        idx = 0
+        deletions = 0
+        with ses.begin() as s:
+            l = list(ses.query(WindowEvent).order_by(WindowEvent.time_start))
+            while idx < len(l) - 1:
+                a = l[idx]
+                b = l[idx + 1]
+                delete = a.merge(b, threshold)
+                if delete:
+                    del l[idx + 1]
+                    ses.delete(b)
+                    deletions += 1
+                else:
+                    idx += 1
+        return deletions
 
     @cached_property
     def date_of(self) -> tuple[int, int, int]:
