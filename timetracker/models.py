@@ -128,6 +128,9 @@ class WindowEvent(Base):
         day = self.time_start.day
         return year, month, day
 
+    def duration(self) -> datetime.timedelta:
+        return self.time_end - self.time_start
+
 
 current_time = time.monotonic_ns()
 

@@ -111,7 +111,7 @@ class ChartPart:
 
         hour = 3600 * scale
         now = datetime.datetime.now()
-
+        import timetracker.chart.data_colorer as data_colorer
         while current <= end_time:
             cx = horizontal_offset + offset + scale * (current - start_time).total_seconds()
             vticks.add(vline(cx, height_offset, 1, stroke=annotation_color))
@@ -124,7 +124,10 @@ class ChartPart:
                 svgwrite.text.Text(timetext, x=[cx * cm], y=[(height_offset + 1) * cm],
                                    fill=annotation_color, font_size=10, text_anchor='middle'))
             current += delta
-
+        if any(map(lambda x: x[0].keystrokes, self.data)):
+            gradient = data_colorer.Gradient(map(lambda x: x[0], self.data), lambda x: x.keystrokes,
+                                                  (0, 0, 0),
+                                                  (255, 0, 0))
         for index, value in enumerate(self.data):
             for i in value[1]:
                 if i in pos.keys():
@@ -163,7 +166,8 @@ class ChartPart:
                 block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
                 startx = (value[0].time_start - start_time).total_seconds() * scale + offset + horizontal_offset
                 r = drw.rect(insert=(startx * cm, start * cm), size=(block_width * cm, vscale * cm),
-                             ry=(vscale / 2.0) * cm, rx=0.1 * cm)
+                             ry=(vscale / 2.0) * cm, rx=0.1 * cm,
+                             stroke=gradient.color(value[0]) if value[0].keystrokes else "")
                 r['class'] = i
                 if show_titles:
                     addend = ""

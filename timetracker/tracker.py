@@ -1,13 +1,12 @@
 from __future__ import annotations
 import subprocess
 import sys
-from functools import cached_property
+from time import sleep
 from typing import *
 import datetime
-import time
 
 import timetracker.common
-from timetracker.models import engine, session, Base, WindowClass, WindowEvent, session_object
+from timetracker.models import engine, session, Base, WindowClass, WindowEvent
 import timetracker.models as models
 
 import libinput
@@ -16,6 +15,19 @@ _IDLE_TIMES = timetracker.common.Config.get('idle_times', 30)
 _SAMPLE_INTERVAL = timetracker.common.Config.get('sample_interval', 4)
 
 Base.metadata.create_all(engine)
+
+try:
+    import Xlib
+    import Xlib.display
+
+    _HAS_XLIB = True
+    disp = Xlib.display.Display()
+    NET_WM_NAME = disp.intern_atom('_NET_WM_NAME')
+    NET_ACTIVE_WINDOW = disp.intern_atom('_NET_ACTIVE_WINDOW')
+    root = disp.screen().root
+
+except ImportError:
+    _HAS_XLIB = False
 
 
 def GetEventClasses(wmclass: str) -> WindowClass:
@@ -30,27 +42,43 @@ def GetEventClasses(wmclass: str) -> WindowClass:
 
 
 def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
-    v = subprocess.Popen(["xprop",
-                          "-root",
-                          "_NET_ACTIVE_WINDOW"],
-                         stdout=subprocess.PIPE).communicate()[0].strip().split()[-1].decode(sys.getdefaultencoding())
-    name = subprocess.Popen([b"xprop", b"-id",
-                             v, b"WM_NAME"],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE) \
-               .communicate()[0].strip().split(b'"', 1)[-1][:-1].decode()
-    wclass = subprocess.Popen(['xprop', '-id', v, 'WM_CLASS'], stdout=subprocess.PIPE).communicate()[0].split(b'"', 1)[
-        -1].decode('utf-8')
-    wclass = set(map(lambda x: x.replace('"', '').strip(), wclass.split(',')))
+    if not _HAS_XLIB:
+        v = subprocess.Popen(["xprop",
+                              "-root",
+                              "_NET_ACTIVE_WINDOW"],
+                             stdout=subprocess.PIPE).communicate()[0].strip().split()[-1].decode(
+            sys.getdefaultencoding())
+        name = subprocess.Popen([b"xprop", b"-id",
+                                 v, b"WM_NAME"],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE) \
+                   .communicate()[0].strip().split(b'"', 1)[-1][:-1].decode()
+        wclass = \
+            subprocess.Popen(['xprop', '-id', v, 'WM_CLASS'], stdout=subprocess.PIPE).communicate()[0].split(b'"', 1)[
+                -1].decode('utf-8')
+        window_id = int(v, base=16)
+    else:
+        window_id = root.get_full_property(NET_ACTIVE_WINDOW, Xlib.X.AnyPropertyType).value[0]
+        window = disp.create_resource_object('window', window_id)
+        name = window.get_full_property(NET_WM_NAME, 0)
+        if name:
+            name = name.value.decode()
+        else:
+            print("Couldn't get window title atm, sleeping")
+            sleep(_SAMPLE_INTERVAL)
+            return GetActiveWindowTitle(last)
+        wclass = set(window.get_wm_class())
+
+        print(name, wclass, window)
     wclass = list(map(lambda x: GetEventClasses(x), wclass))
     now = datetime.datetime.now()
     later = now + datetime.timedelta(seconds=_SAMPLE_INTERVAL)
-    if last and last.window_id == int(v, base=16) and last.window_name == name:
+    if last and last.window_id == window_id and last.window_name == name:
         if (now - last.time_end).total_seconds() <= 3 * _SAMPLE_INTERVAL:
             last.time_end = later
             return last
 
-    result = WindowEvent(window_name=name, window_id=int(v, base=16),
+    result = WindowEvent(window_name=name, window_id=window_id,
                          time_start=now,
                          time_end=later, session=models.session_object(),
                          classes=wclass)
@@ -69,9 +97,9 @@ def track():
     Start tracking the window usage of the system.
     :return: None
     """
-    import timetracker
     from math import sqrt
     last = None
+
     c = 0
     context = libinput.LibInput(context_type=libinput.constant.ContextType.UDEV)
     context.assign_seat('seat0')
@@ -82,7 +110,7 @@ def track():
     for i in event:
         if i.type.is_pointer() or i.type.is_keyboard:
             elapsed = (datetime.datetime.now() - last_time).total_seconds()
-            if elapsed >= _SAMPLE_INTERVAL * 3 and last:
+            if elapsed >= _SAMPLE_INTERVAL * _IDLE_TIMES and last:
                 print(f"No movement for {elapsed} seconds")
                 last = None
                 accumulated_keys = 0
@@ -90,7 +118,7 @@ def track():
             if i.type.is_pointer() and i.type == libinput.EventType.POINTER_MOTION and last:
                 if not last.mouse_motion:
                     last.mouse_motion = 0.0
-                accumulated_motion += sum(map(lambda x: x ** 2, i.delta_unaccelerated))
+                accumulated_motion += sqrt(sum(map(lambda x: x ** 2, i.delta_unaccelerated)))
             elif last and i.type == libinput.EventType.KEYBOARD_KEY and i.key_state == libinput.KeyState.PRESSED:
                 accumulated_keys += 1 + i.seat_key_count
             # Debounce the command invocation, as this could get very expensive if it is called on each event
