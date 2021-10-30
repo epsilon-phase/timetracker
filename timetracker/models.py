@@ -1,13 +1,13 @@
 from __future__ import annotations
+
 import datetime
-import time
 import os
+import time
 from functools import cached_property
 
 import sqlalchemy.orm
 from sqlalchemy import create_engine, Column, Integer, DateTime as DT, ForeignKey, String, Float
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, scoped_session
-from sqlalchemy.pool import SingletonThreadPool
 
 backend = 'sqlite'
 tail, prefix = '', ''
@@ -88,7 +88,7 @@ class WindowEvent(Base):
     "The number of keypresses recorded"
 
     def should_merge(self, b: WindowEvent, threshold: int):
-        return b.window_name != self.window_name and \
+        return b.window_name == self.window_name and \
                (b.time_start - self.time_end).total_seconds() < threshold
 
     def merge(self, b: WindowEvent, threshold: int = 10):
@@ -97,9 +97,14 @@ class WindowEvent(Base):
         self.mouse_motion = (self.mouse_motion or 0.0) + (b.mouse_motion or 0.0)
 
     @staticmethod
-    def mergeWithin(ses: sqlalchemy.orm.Session, threshold: int) -> int:
-        from sqlalchemy.orm import aliased
+    def merge_within(ses: sqlalchemy.orm.Session, threshold: float) -> int:
+        """
+        Merge all events within threshold seconds of each other.
 
+        :param ses: The sqlalchemy session object to make the queries and changes in
+        :param threshold: The number of seconds apart two otherwise identical events may be to be merged
+        :return: The number of events removed in the consolidation process
+        """
         idx = 0
         deletions = 0
         with ses.begin() as s:
@@ -107,8 +112,10 @@ class WindowEvent(Base):
             while idx < len(l) - 1:
                 a = l[idx]
                 b = l[idx + 1]
-                delete = a.merge(b, threshold)
+
+                delete = a.should_merge(b, threshold)
                 if delete:
+                    a.merge(b, threshold)
                     del l[idx + 1]
                     ses.delete(b)
                     deletions += 1
