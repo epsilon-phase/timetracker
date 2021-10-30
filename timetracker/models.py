@@ -99,7 +99,7 @@ class WindowEvent(Base):
     @staticmethod
     def merge_within(ses: sqlalchemy.orm.Session, threshold: float) -> int:
         """
-        Merge all events within threshold seconds of each other.
+        Merge all mostly identical events within threshold seconds of each other.
 
         :param ses: The sqlalchemy session object to make the queries and changes in
         :param threshold: The number of seconds apart two otherwise identical events may be to be merged
