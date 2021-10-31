@@ -7,6 +7,8 @@ from __future__ import annotations
 import datetime
 
 import svgwrite
+
+import timetracker.chart.data_shaper
 from .. import models
 from svgwrite import cm, mm
 from . import color_chooser
@@ -125,9 +127,10 @@ class ChartPart:
                                    fill=annotation_color, font_size=10, text_anchor='middle'))
             current += delta
         if any(map(lambda x: x[0].keystrokes, self.data)):
-            gradient = data_colorer.Gradient(map(lambda x: x[0], self.data), lambda x: x.keystrokes,
-                                                  (0, 0, 0),
-                                                  (255, 0, 0))
+            gradient = data_colorer.Gradient(map(lambda x: x[0], self.data), lambda x: x.mouse_motion,
+                                             (0, 0, 0),
+                                             (255, 0, 0))
+        rs = timetracker.chart.data_shaper.CircleShaper()
         for index, value in enumerate(self.data):
             for i in value[1]:
                 if i in pos.keys():
@@ -162,12 +165,26 @@ class ChartPart:
                         addendum = f'{total_strokes} keypresses'
                         l.add(svgwrite.text.TSpan(addendum, dy=['1.2em'], x=[horizontal_offset * cm],
                                                   font_size=10))
-                start = v * vscale + height_offset + 1
-                block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
-                startx = (value[0].time_start - start_time).total_seconds() * scale + offset + horizontal_offset
-                r = drw.rect(insert=(startx * cm, start * cm), size=(block_width * cm, vscale * cm),
-                             ry=(vscale / 2.0) * cm, rx=0.1 * cm,
-                             stroke=gradient.color(value[0]) if value[0].keystrokes else "")
+                r = rs.shape(drw, scale, horizontal_offset + offset,
+                             start_time, v, vscale, height_offset, value[0],
+                             gradient.color(value[0]) if value[
+                                 0].keystrokes else "")
+                try:
+                    if value[0].mouse_motion:
+                        r['ry'] = max(3.0,
+                                      (vscale / 2) * value[0].mouse_motion /
+                                      max(filter(lambda x: x[0].mouse_motion, self.data),
+                                          key=lambda x: x[0].mouse_motion if x[
+                                              0].mouse_motion else 0.0)[
+                                          0].mouse_motion)
+                except ValueError:
+                    pass
+                # start = v * vscale + height_offset + 1
+                # block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
+                # startx = (value[0].time_start - start_time).total_seconds() * scale + offset + horizontal_offset
+                # r = drw.rect(insert=(startx * cm, start * cm), size=(block_width * cm, vscale * cm),
+                #              ry=(vscale / 2.0) * cm, rx=0.1 * cm,
+                #              stroke=gradient.color(value[0]) if value[0].keystrokes else "")
                 r['class'] = i
                 if show_titles:
                     addend = ""

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="/assets/form.js"></script>
+    <style>
+        .matcher{
+            padding-left: 0.5cm;
+
+        }
+        .simple-matcher{
+            margin-left: 0.25cm;
+            padding-bottom: 0.1cm;
+            border-left: 1px solid black;
+            border-right:1px solid black;
+        }
+
+
+
+    </style>
+</head>
+<body>
+<form id="matcherthing">
+    <button type="button" onclick="preview()">Preview</button>
+    <span>Show titles: <input type="checkbox" id="show_titles"/></span><br/>
+    <span>Chart Width:<input id="width" type="number" value="20"></span>
+    <span>Chart Height: <input id="height" type="number" value="10"></span><br/>
+
+</form>
+<script type="text/javascript">
+    let f = document.getElementById("matcherthing");
+    json_to_form(f,%%REPLACE%%);
+    function preview(){
+        let data = encodeURIComponent(JSON.stringify(from_form(f)));
+        window.open('/?patterns='+data+"&show_titles="+document.querySelector("#show_titles").value
+                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value,'_blank').focus();
+    }
+</script>
+</body>
+</html>

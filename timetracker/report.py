@@ -56,7 +56,7 @@ class NameTagger(Matcher):
     def __init__(self, match: Union[str, re.Pattern], tags: list[str], case_sensitive: bool = False):
         super().__init__()
         self.matcher = match
-        self.tags = tags
+        self.tags = list(filter(lambda x:len(x)>0,tags))
         self.case_sensitive = case_sensitive
 
     def matches(self, window_event: models.WindowEvent) -> tuple[bool, Optional[list[str]]]:
@@ -66,6 +66,10 @@ class NameTagger(Matcher):
 
     def as_json(self, name='name'):
         return super().as_json('name')
+
+    def to_form(self):
+        el_id = id(self)
+        return f'Matches: <input id="{el_id}" type="text" value="{self.matchers}"/>'
 
 
 class ClassMatcher(Matcher):
@@ -180,7 +184,7 @@ def from_json(obj: dict) -> Matcher:
         raise f"Invalid match type: {match_type}"
     MatcherType = __types[match_type]
     if issubclass(MatcherType, CompoundMatcher):
-        return MatcherType(list(map(from_json, obj['matcher'])), obj['tags'])
+        return MatcherType(list(map(from_json, obj['matcher'])), obj['tags'] if 'tags' in obj.keys() else [])
     return MatcherType(
         [re.compile(i['value']) if isinstance(i, dict) else i for i in obj['matcher']] if isinstance(obj['matcher'],
                                                                                                      list) else obj[

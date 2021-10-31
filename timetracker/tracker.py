@@ -58,16 +58,21 @@ def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
                 -1].decode('utf-8')
         window_id = int(v, base=16)
     else:
-        window_id = root.get_full_property(NET_ACTIVE_WINDOW, Xlib.X.AnyPropertyType).value[0]
-        window = disp.create_resource_object('window', window_id)
-        name = window.get_full_property(NET_WM_NAME, 0)
-        if name:
-            name = name.value.decode()
-        else:
-            print("Couldn't get window title atm, sleeping")
-            sleep(_SAMPLE_INTERVAL)
-            return GetActiveWindowTitle(last)
-        wclass = set(window.get_wm_class())
+        while True:
+            try:
+                window_id = root.get_full_property(NET_ACTIVE_WINDOW, Xlib.X.AnyPropertyType).value[0]
+                window = disp.create_resource_object('window', window_id)
+                name = window.get_full_property(NET_WM_NAME, 0)
+                if name:
+                    name = name.value.decode()
+                else:
+                    print("Couldn't get window title atm, sleeping")
+                    sleep(_SAMPLE_INTERVAL)
+                    return GetActiveWindowTitle(last)
+                wclass = set(window.get_wm_class())
+                break
+            except Xlib.error.BadWindow:
+                continue
 
         print(name, wclass, window)
     wclass = list(map(lambda x: GetEventClasses(x), wclass))

@@ -1,0 +1,43 @@
+<html>
+<head><title>hehe</title></head>
+<style>
+	.compound > * {
+		padding-left: 0.5cm;
+	}
+	.compound{
+		border: solid 1px blueviolet;
+	}
+	.matcher > *{
+		padding-left: 0.25cm;
+	}
+</style>
+<body onload='build_shit()'>
+	<script src='form.js'></script>
+	<script type='text/javascript'>
+		const build_shit=function(){
+			let b=build_form([{"type": "name", "matcher": "Firefox", "tags": ["browser"]}, {"type": "or", "matcher": [{"type": "name", "matcher": ["Vulpine Club", "Mastodon"], "tags": ["social media", "mastodon"]}, {"type": "name", "matcher": "Reddit", "tags": ["social media", "reddit"]}, {"type": "name", "matcher": "Stack Overflow", "tags": ["documentation"]}, {"type": "and", "matcher": [{"type": "name", "matcher": "Firefox", "tags": ["browser"]}, {"type": "name", "matcher": "Documentation", "tags": []}], "tags": ["documentation"]}, {"type": "and", "matcher": [{"type": "name", "matcher": "Firefox", "tags": ["browser"]}, {"type": "name", "matcher": ["Gmail", "Protonmail"], "tags": ["email", "social media"]}], "tags": []}, {"type": "and", "matcher": [{"type": "name", "matcher": "Firefox", "tags": ["browser"]}, {"type": "name", "matcher": ["Indeed"], "tags": ["work search"]}], "tags": []}, {"type": "name", "matcher": "\u2014 Python", "tags": ["documentation", "python"]}], "tags": []}, {"type": "or", "matcher": [{"type": "name", "matcher": ".py", "tags": ["python"]}, {"type": "and", "matcher": [{"type": "name", "matcher": "timetracker", "tags": ["timetracker"]}, {"type": "name", "matcher": ".py", "tags": []}], "tags": []}, {"type": "name", "matcher": ".lisp", "tags": ["lisp", "common lisp"]}, {"type": "name", "matcher": "JuCi++", "tags": ["c++"]}, {"type": "class", "matcher": "jetbrains", "tags": ["pycharm"]}], "tags": ["programming"]}, {"type": "name", "matcher": "GemCraft", "tags": ["Games"]}, {"type": "name", "matcher": "Telegram", "tags": ["social media", "chat"]}, {"type": "name", "matcher": "Discord", "tags": ["social media", "chat"]}, {"type": "class", "matcher": "kitty", "tags": ["terminal"]}, {"type": "name", "matcher": "LyX", "tags": ["writing"]}]);
+			document.getElementsByTagName('body')[0].appendChild(b);
+			document.getElementsByTagName('body')[0].appendChild(document.createTextNode(JSON.stringify(from_form(b))))
+			function callback(a,c){
+				console.log('hehe')
+				if(a!==undefined&&c!==undefined){
+					console.log("a,c")
+					for(const mutation of a){
+						for(const node of mutation.addedNodes){
+
+							if(node.getAttribute('type')==='text' && node.tagName==='INPUT'){
+								console.log(node)
+								node.addEventListener('input',callback);
+							}
+						}
+					}
+				}
+				document.getElementsByTagName('body')[0].removeChild(document.getElementsByTagName('body')[0].lastChild)
+				document.getElementsByTagName('body')[0].appendChild(document.createTextNode(JSON.stringify(from_form(b))));
+			}
+			var mutop = new MutationObserver(callback);
+			mutop.observe(b,{attributes:true,childList:true,subtree:true});
+		};
+	</script>
+</body>	
+</html>

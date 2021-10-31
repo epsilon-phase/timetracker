@@ -82,9 +82,9 @@ class WindowEvent(Base):
     "Relationship with the session"
     classes: list[WindowClass]
     "The list of associated classes."
-    mouse_motion = Column(Float, default=None)
+    mouse_motion = Column(Float, default=0)
     "The number of pixels that the mouse pointer has traversed"
-    keystrokes = Column(Integer, default=None)
+    keystrokes = Column(Integer, default=0)
     "The number of keypresses recorded"
 
     def should_merge(self, b: WindowEvent, threshold: int):
