@@ -7,6 +7,8 @@ generate charts and present them to the user.
 import json
 import os
 from functools import lru_cache
+import timetracker.chart as chart
+import timetracker.chart.data_colorer as data_colorer
 
 import svgwrite
 
@@ -57,7 +59,7 @@ def example(width: int = 25, height: int = 20, show_titles: bool = False, max_ch
     print(Config.get.cache_info())
     max_charts = int(max_charts)
     if patterns:
-        m = [timetracker.report.from_json(i) for i in patterns]
+        m = patterns
     if not m:
         browsermatch = NameTagger(['Firefox', 'Google Chrome',
                                    'Chromium', 'Vivaldi'], ['browser'])
@@ -86,7 +88,7 @@ def example(width: int = 25, height: int = 20, show_titles: bool = False, max_ch
         Config.set("matchers", m)
     r = process_events(m, models.session.query(models.WindowEvent))
 
-    import timetracker.chart as chart
+
     eg = svgwrite.Drawing('example.svg')
     x = group_by(r, lambda z: z[0].date_of)
     if max_charts != 0:
@@ -99,7 +101,7 @@ def example(width: int = 25, height: int = 20, show_titles: bool = False, max_ch
 
 class Hoster:
     @cherrypy.expose
-    def index(self, width: float = 25, height: float = 20, show_titles: bool = False, max_charts: int = 6,
+    def svg(self, width: float = 25, height: float = 20, show_titles: bool = False, max_charts: int = 6,
               patterns=None):
         """
         This is the method that serves the chart up to the browser/whatever asks for it.
@@ -114,7 +116,7 @@ class Hoster:
 
         @lru_cache(10)
         def load_patterns(s: str):
-            return json.loads(s)
+            return list(timetracker.report.from_json(i) for i in json.loads(s))
 
         if patterns:
             patterns = load_patterns(patterns)
@@ -122,12 +124,13 @@ class Hoster:
                      patterns=patterns)
         script = ex.script(content="setTimeout(function(){location.reload();},30000);")
         script['type'] = 'text/javascript'
-        ex.add(script)
+        # ex.add(script)
         cherrypy.response.headers['no-cache'] = 1
-        return str(ex.tostring())
+        cherrypy.response.headers['Content-Type'] = 'image/svg+xml'
+        return bytes(ex.tostring(), 'utf-8')
 
     @cherrypy.expose
-    def config(self):
+    def index(self):
         import json
         with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "../assets/config.html")) as f:
             k = f.read().replace('%%REPLACE%%', json.dumps(Config.data['matchers']))
@@ -139,7 +142,8 @@ def host():
                         {
                             'global': {'server.socket_host': '127.0.0.1',
                                        'server.socket_port': 8080,
-                                       'server.thread_pool': 8, },
+                                       'server.thread_pool': 8,
+                                       'tools.gzip.on': True},
                             '/assets': {
                                 'tools.staticdir.on': True,
                                 'tools.staticdir.dir': os.path.join(os.path.abspath(os.path.dirname(__file__)),

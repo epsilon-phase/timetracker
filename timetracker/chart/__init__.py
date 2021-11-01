@@ -130,7 +130,12 @@ class ChartPart:
             gradient = data_colorer.Gradient(map(lambda x: x[0], self.data), lambda x: x.mouse_motion,
                                              (0, 0, 0),
                                              (255, 0, 0))
+        import timetracker.chart.data_shaper
         rs = timetracker.chart.data_shaper.CircleShaper()
+        max_motion = max(filter(lambda x: x[0].mouse_motion, self.data),
+                         key=lambda x: x[0].mouse_motion if x[
+                             0].mouse_motion else 0.0)[
+            0].mouse_motion
         for index, value in enumerate(self.data):
             for i in value[1]:
                 if i in pos.keys():
@@ -173,10 +178,9 @@ class ChartPart:
                     if value[0].mouse_motion:
                         r['ry'] = max(3.0,
                                       (vscale / 2) * value[0].mouse_motion /
-                                      max(filter(lambda x: x[0].mouse_motion, self.data),
-                                          key=lambda x: x[0].mouse_motion if x[
-                                              0].mouse_motion else 0.0)[
-                                          0].mouse_motion)
+                                      max_motion)
+                    else:
+                        r['ry'] = 2 * cm
                 except ValueError:
                     pass
                 # start = v * vscale + height_offset + 1

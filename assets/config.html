@@ -5,37 +5,61 @@
     <title>Title</title>
     <script src="/assets/form.js"></script>
     <style>
-        .matcher{
+        .matcher,.compound{
             padding-left: 0.5cm;
 
         }
-        .simple-matcher{
+        .simple-matcher, .compound-matcher{
             margin-left: 0.25cm;
             padding-bottom: 0.1cm;
-            border-left: 1px solid black;
-            border-right:1px solid black;
+
         }
+        .simple-matcher{
+            border-left: 1px solid black;
 
+        }
+        .compound-matcher{
+            border-left: 1px solid purple;
 
+        }
+        #matcherthing > .simple-matcher,.compound-matcher {
+            width:25%;
+        }
 
     </style>
 </head>
 <body>
-<form id="matcherthing">
-    <button type="button" onclick="preview()">Preview</button>
-    <span>Show titles: <input type="checkbox" id="show_titles"/></span><br/>
-    <span>Chart Width:<input id="width" type="number" value="20"></span>
-    <span>Chart Height: <input id="height" type="number" value="10"></span><br/>
-
+<!--
+TODO Add more configurability
+TODO Add css to make it look better
+TODO style customization (Requires an improved chart API)
+-->
+<object id="svg">
+</object>
+<form id="matcherthing" style="display:flex; flex-wrap: wrap;align-items:flex-start;">
+    <div>
+        <button type="button" onclick="preview()">Preview</button>
+        <span>Show titles: <input type="checkbox" id="show_titles"/></span><br/>
+        <span>Chart Width:<input id="width" type="number" value="20"></span><br/>
+        <span>Chart Height: <input id="height" type="number" value="10"></span><br/>
+    </div>
 </form>
 <script type="text/javascript">
     let f = document.getElementById("matcherthing");
     json_to_form(f,%%REPLACE%%);
+    const geturl=function(data){
+        let  st = document.querySelector("#show_titles").value?'true':'false';
+        return '/svg?patterns='+data+"&show_titles="+st
+                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value+"&max_charts=1";
+    };
     function preview(){
         let data = encodeURIComponent(JSON.stringify(from_form(f)));
-        window.open('/?patterns='+data+"&show_titles="+document.querySelector("#show_titles").value
-                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value,'_blank').focus();
+//        window.open('/?patterns='+data+"&show_titles="+document.querySelector("#show_titles").value
+//                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value,'_blank').focus();
+        document.querySelector('#svg').setAttribute('data',"");
+        document.querySelector('#svg').setAttribute('data',geturl(data));
     }
+
 </script>
 </body>
 </html>

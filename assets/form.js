@@ -120,6 +120,7 @@ const compound=function(obj){
 	element.appendChild(document.createTextNode(obj['type']+' Matcher'))
 	element.appendChild(document.createElement('br'))
 	element.setAttribute('type',obj['type']);
+	element.classList=['compound-matcher']
 	let matchers = document.createElement('div');
 	matchers.setAttribute('class','compound');
 	let c = 0;
