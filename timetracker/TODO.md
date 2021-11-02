@@ -2,9 +2,10 @@
 * [ ] Write tests for various things
     * [ ] The Matching infrastructure
     * [ ] Chart thing, maybe?
-        * [ ] Color Chooser should at least be doable
+        * [x] Color Chooser should at least be doable
+        * [ ] data_shaper
 * [ ] Write documentation
-    * [ ] Python docstrings
+    * [x] Python docstrings
     * [ ] Configuration guide
     * [ ] Chart customization
 * [ ] Write new things

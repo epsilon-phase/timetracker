@@ -176,9 +176,9 @@ class ChartPart:
                                  0].keystrokes else "")
                 try:
                     if value[0].mouse_motion:
-                        r['ry'] = max(3.0,
+                        r['ry'] = min(max(vscale / 5,
                                       (vscale / 2) * value[0].mouse_motion /
-                                      max_motion)
+                                      max_motion),vscale/2.0) * cm
                     else:
                         r['ry'] = 2 * cm
                 except ValueError:

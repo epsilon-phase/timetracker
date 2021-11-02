@@ -102,7 +102,7 @@ def example(width: int = 25, height: int = 20, show_titles: bool = False, max_ch
 class Hoster:
     @cherrypy.expose
     def svg(self, width: float = 25, height: float = 20, show_titles: bool = False, max_charts: int = 6,
-              patterns=None):
+              patterns=None,id=None):
         """
         This is the method that serves the chart up to the browser/whatever asks for it.
         :param width: The width of each chart in centimeters
