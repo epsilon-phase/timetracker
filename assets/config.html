@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Timetracker</title>
     <script src="/assets/form.js"></script>
     <style>
         .matcher,.compound{
@@ -53,6 +53,7 @@ TODO style customization (Requires an improved chart API)
          style="">
         <div>
             <button type="button" onclick="preview()">Preview</button>
+            <button type="button" onclick="save_matchers()">Save Report</button>
             <span>Show titles: <input type="checkbox" id="show_titles"/></span><br/>
             <span>Chart Width:<input id="width" type="number" value="20"></span><br/>
             <span>Chart Height: <input id="height" type="number" value="10"></span><br/>
@@ -66,15 +67,22 @@ TODO style customization (Requires an improved chart API)
     var prev = document.getElementById('svg');
     var next = document.getElementById('preview_load');
     json_to_form(f,%%REPLACE%%);
+    const getparams = function(data,id){
+        let  st = document.querySelector("#show_titles").value?'true':'false';
+        return 'patterns='+data+"&show_titles="+st
+                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value+"&max_charts="
+                    + document.querySelector("#chart_count").value+"&id="+(id);
+    };
     const geturl=function() {
         let id=0;
         return function(data){
-        let  st = document.querySelector("#show_titles").value?'true':'false';
-        return '/svg?patterns='+data+"&show_titles="+st
-                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value+"&max_charts="
-                    + document.querySelector("#chart_count").value+"&id="+(id++);
+
+        return '/svg?'+getparams(data,id++);
     }}();
     var timing=undefined;
+    function save_matchers(){
+        window.open('save_matchers?patterns='+encodeURIComponent(JSON.stringify(from_form(f))));
+    }
     function preview(){
 
         let data = encodeURIComponent(JSON.stringify(from_form(f)));

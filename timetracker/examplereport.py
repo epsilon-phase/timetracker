@@ -142,6 +142,13 @@ class Hoster:
             k = f.read().replace('%%REPLACE%%', json.dumps(Config.data['matchers']))
             return k
 
+    @cherrypy.expose
+    def save_matchers(self, patterns):
+        thing = list(timetracker.report.from_json(i) for i in json.loads(patterns))
+        Config.set('matchers', thing)
+        # Only the finest websites :)
+        return "Settings saved!"
+
 
 def host():
     cherrypy.quickstart(Hoster(), '',
