@@ -74,6 +74,7 @@ class NameTagger(Matcher):
 
 class ClassMatcher(Matcher):
     matcher: Union[str, re.Pattern]
+
     tags: Optional[list[str]]
 
     def __init__(self, matcher: Union[str, re.Pattern], tags: Optional[list[str]], case_sensitive=False):
@@ -128,7 +129,7 @@ class OrMatcher(CompoundMatcher):
 
     Concatenates submatcher tags.
     """
-    __slots__ = ['matcher', 'tags']
+    # __slots__ = ['matcher', 'tags']
     tags: list[str]
 
     def __init__(self, matchers, tags):
@@ -153,7 +154,7 @@ class NotMatcher(CompoundMatcher):
     This is probably most useful in combination with other compound matchers to add additional
     discrimination ability
     """
-    __slots__ = ['matcher', 'tags']
+    # __slots__ = ['matcher', 'tags']
 
     def __init__(self, matches, tags):
         """

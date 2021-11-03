@@ -86,7 +86,13 @@ def example(width: int = 25, height: int = 20, show_titles: bool = False, max_ch
              NameTagger('LyX', ['writing'])]
     if v:
         Config.set("matchers", m)
-    r = process_events(m, models.session.query(models.WindowEvent))
+    q = models.session.query(models.WindowEvent)
+    if max_charts == 1:
+        from sqlalchemy.sql import func
+        from sqlalchemy import cast, Integer
+        q = q.where(
+            cast(func.julianday(func.now()), Integer) == cast(func.julianday(models.WindowEvent.time_start), Integer))
+    r = process_events(m, q)
 
     eg = svgwrite.Drawing('example.svg', debug=False)
     x = group_by(r, lambda z: z[0].date_of)
@@ -120,6 +126,7 @@ class Hoster:
 
         if patterns:
             patterns = load_patterns(patterns)
+
         ex = example(width=float(width), height=float(height), show_titles=show_titles, max_charts=int(max_charts),
                      patterns=patterns)
         script = ex.script(content="setTimeout(function(){location.reload();},30000);")
