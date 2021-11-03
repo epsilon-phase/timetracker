@@ -33,7 +33,9 @@
             grid-auto-rows: auto;
             width:100%;
         }
-
+    .invis{
+        display:none;
+    }
 
     </style>
 </head>
@@ -43,8 +45,9 @@ TODO Add more configurability
 TODO Add css to make it look better
 TODO style customization (Requires an improved chart API)
 -->
-<object id="svg">
+<object id="svg" onload="document.getElementById('preview_load').classList=['invis'];this.classList=[];">>
 </object>
+<object id="preview_load" style="" onload="document.getElementById('svg').classList=['invis'];this.classList=[];"></object>
 <form>
     <div id="matcherthing"
          style="">
@@ -60,6 +63,8 @@ TODO style customization (Requires an improved chart API)
 </form>
 <script type="text/javascript">
     let f = document.getElementById("matcherthing");
+    var prev = document.getElementById('svg');
+    var next = document.getElementById('preview_load');
     json_to_form(f,%%REPLACE%%);
     const geturl=function() {
         let id=0;
@@ -75,11 +80,16 @@ TODO style customization (Requires an improved chart API)
         let data = encodeURIComponent(JSON.stringify(from_form(f)));
 //        window.open('/?patterns='+data+"&show_titles="+document.querySelector("#show_titles").value
 //                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value,'_blank').focus();
-        document.querySelector('#svg').setAttribute('data',"");
-        document.querySelector('#svg').setAttribute('data',geturl(data));
+        //document.querySelector('#preview').setAttribute('data',"");
+        next.setAttribute('data',geturl(data));
+        let tmp = next;
+        next=prev;
+        prev=tmp;
+        prev.setAttribute('data',geturl(data));
+        //document.querySelector('#preview_load').setAttribute('data',geturl(data));
         if(timing===undefined){
             let time = document.getElementById("refresh").value;
-            setTimeout(function(){timing=undefined;preview()},time * 1000);
+            timing=setTimeout(function(){timing=undefined;preview()},time * 1000);
         }else{
             console.log("No need to schedule event :)");
         }

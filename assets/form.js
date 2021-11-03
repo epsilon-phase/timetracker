@@ -115,6 +115,28 @@ const name_matcher=function(obj){
 	element.appendChild(mktex('',obj['tags'].join(','),'tags'))
 	return element;
 };
+const add_matcher=function(element){
+    let first_one = undefined;
+    let div = document.createElement("span");
+    for(const name of ['name','class','or','and']){
+		let type = name;
+		let l=simple_button(function(e){
+			let c = document.createElement("div");
+			json_to_form(c,[{'type':type,'matcher':[],'tags':[]}]);
+			console.log(first_one)
+			for(const e of c.children){
+
+				element.insertBefore(e,div)
+			}
+		},name);
+		if(first_one === undefined)
+			first_one=l
+
+		div.appendChild(l);
+
+	}
+	element.appendChild(div);
+}
 const compound=function(obj){
 	let element = document.createElement("div");
 	element.appendChild(document.createTextNode(obj['type']+' Matcher'))
@@ -178,6 +200,7 @@ function json_to_form(form,data){
 			form.appendChild(compound(e));
 		}
 	}
+	add_matcher(form);
 }
 function build_form(data){
 	let r=document.createElement('form');
