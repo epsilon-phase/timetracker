@@ -51,7 +51,6 @@ class WindowClass(Base):
     __tablename__ = 'WindowClass'
     id = Column(Integer, primary_key=True)
     name = Column(Integer, unique=True)
-    events = relationship('WindowEvent', secondary='EventClass', backref='classes')
 
 
 class EventClass(Base):
@@ -80,7 +79,7 @@ class WindowEvent(Base):
     "The end of the measuremetn interval"
     session = relationship('SessionObject', back_populates='events')
     "Relationship with the session"
-    classes: list[WindowClass]
+    classes = relationship('WindowClass', secondary='EventClass', backref='events', lazy='joined')
     "The list of associated classes."
     mouse_motion = Column(Float, default=0)
     "The number of pixels that the mouse pointer has traversed"

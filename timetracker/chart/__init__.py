@@ -9,6 +9,8 @@ import datetime
 import svgwrite
 
 import timetracker.chart.data_shaper
+from itertools import chain
+from collections import namedtuple
 from .. import models
 from svgwrite import cm, mm
 from . import color_chooser
@@ -132,9 +134,10 @@ class ChartPart:
                                              (255, 0, 0))
         import timetracker.chart.data_shaper
         rs = timetracker.chart.data_shaper.CircleShaper()
-        max_motion = max(filter(lambda x: x[0].mouse_motion, self.data),
-                         key=lambda x: x[0].mouse_motion if x[
-                             0].mouse_motion else 0.0)[
+        max_motion = \
+        max(chain(filter(lambda x: x[0].mouse_motion, self.data), [[namedtuple('mock', 'mouse_motion')(0)]]),
+            key=lambda x: x[0].mouse_motion if x[
+                0].mouse_motion else 0.0)[
             0].mouse_motion
         for index, value in enumerate(self.data):
             for i in value[1]:
@@ -177,10 +180,10 @@ class ChartPart:
                 try:
                     if value[0].mouse_motion:
                         r['ry'] = min(max(vscale / 5,
-                                      (vscale / 2) * value[0].mouse_motion /
-                                      max_motion),vscale/2.0) * cm
+                                          (vscale / 2) * value[0].mouse_motion /
+                                          max_motion), vscale / 2.0) * cm
                     else:
-                        r['ry'] = 2 * cm
+                        r['ry'] = (vscale / 3) * cm
                 except ValueError:
                     pass
                 # start = v * vscale + height_offset + 1

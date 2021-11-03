@@ -88,8 +88,7 @@ def example(width: int = 25, height: int = 20, show_titles: bool = False, max_ch
         Config.set("matchers", m)
     r = process_events(m, models.session.query(models.WindowEvent))
 
-
-    eg = svgwrite.Drawing('example.svg')
+    eg = svgwrite.Drawing('example.svg', debug=False)
     x = group_by(r, lambda z: z[0].date_of)
     if max_charts != 0:
         x = x[-max_charts:]
@@ -102,7 +101,7 @@ def example(width: int = 25, height: int = 20, show_titles: bool = False, max_ch
 class Hoster:
     @cherrypy.expose
     def svg(self, width: float = 25, height: float = 20, show_titles: bool = False, max_charts: int = 6,
-              patterns=None,id=None):
+            patterns=None, id=None):
         """
         This is the method that serves the chart up to the browser/whatever asks for it.
         :param width: The width of each chart in centimeters
@@ -110,6 +109,7 @@ class Hoster:
         :param show_titles: Whether or not to show the window titles in the chart's alt-texts
         :param max_charts: The maximum number of charts to display at once
         :param patterns: The json-encoded reporting configuration to display.
+        :param id: The id of the request, optional, only useful if you want to circumvent caching.
         :return: The page
         """
         print(f"patterns:{type(patterns)}")
@@ -124,7 +124,6 @@ class Hoster:
                      patterns=patterns)
         script = ex.script(content="setTimeout(function(){location.reload();},30000);")
         script['type'] = 'text/javascript'
-        # ex.add(script)
         cherrypy.response.headers['no-cache'] = 1
         cherrypy.response.headers['Content-Type'] = 'image/svg+xml'
         return bytes(ex.tostring(), 'utf-8')
