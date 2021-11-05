@@ -15,7 +15,7 @@ class ColorChooser:
         return ""
 
 
-class color_cycle(ColorChooser):
+class ColorCycle(ColorChooser):
     """
     The most basic kind of colorchooser, makes a selection from the
     list of colors it knows about.
@@ -35,7 +35,7 @@ class color_cycle(ColorChooser):
         return self.colors[index % len(self.colors)]
 
 
-monokai = color_cycle(['#797979', '#d6d6d6', '#e5b567', '#b4d273', '#e87d3e', '#9e86c8', '#b05279', '#6c99bb'],
-                      '#d6d6d6', '#2e2e2e')
+monokai = ColorCycle(['#797979', '#d6d6d6', '#e5b567', '#b4d273', '#e87d3e', '#9e86c8', '#b05279', '#6c99bb'],
+                     '#d6d6d6', '#2e2e2e')
 
-randomly_generated = color_cycle(['#8AF3FF', '#18A999', '#109648'], '#F7F0F0', '#484349')
+randomly_generated = ColorCycle(['#8AF3FF', '#18A999', '#109648'], '#F7F0F0', '#484349')
