@@ -148,21 +148,21 @@ const compound=function(obj){
 	let c = 0;
 	json_to_form(matchers,obj['matcher']);
 	let first_one = undefined;
-	for(const name of ['name','class','or','and']){
-		let type = name;
-		let l=simple_button(function(e){
-			let c = document.createElement("div");
-			json_to_form(c,[{'type':type,'matcher':[],'tags':[]}]);
-			console.log(first_one)
-			for(const e of c.children){
-
-				matchers.insertBefore(e,first_one)
-			}
-		},name);
-		if(first_one === undefined)
-			first_one=l
-		matchers.appendChild(l);
-	}
+//	for(const name of ['name','class','or','and']){
+//		let type = name;
+//		let l=simple_button(function(e){
+//			let c = document.createElement("div");
+//			json_to_form(c,[{'type':type,'matcher':[],'tags':[]}]);
+//			console.log(first_one)
+//			for(const e of c.children){
+//
+//				matchers.insertBefore(e,first_one)
+//			}
+//		},name);
+//		if(first_one === undefined)
+//			first_one=l
+//		matchers.appendChild(l);
+//	}
 	matchers.appendChild(simple_button(function(){
 		matchers.insertBefore(document.createElement('br'),
 			matchers.lastElementChild)
