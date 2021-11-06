@@ -146,23 +146,8 @@ const compound=function(obj){
 	let matchers = document.createElement('div');
 	matchers.setAttribute('class','compound');
 	let c = 0;
-	json_to_form(matchers,obj['matcher']);
+	json_to_form(matchers,obj['matcher'], true);
 	let first_one = undefined;
-//	for(const name of ['name','class','or','and']){
-//		let type = name;
-//		let l=simple_button(function(e){
-//			let c = document.createElement("div");
-//			json_to_form(c,[{'type':type,'matcher':[],'tags':[]}]);
-//			console.log(first_one)
-//			for(const e of c.children){
-//
-//				matchers.insertBefore(e,first_one)
-//			}
-//		},name);
-//		if(first_one === undefined)
-//			first_one=l
-//		matchers.appendChild(l);
-//	}
 	matchers.appendChild(simple_button(function(){
 		matchers.insertBefore(document.createElement('br'),
 			matchers.lastElementChild)
@@ -190,7 +175,7 @@ function from_compound(form){
 	return {'type':form.getAttribute('type'),
 			'matcher':from_form(matchers)}
 }
-function json_to_form(form,data){
+function json_to_form(form,data, add_buttons){
 	for(let e of data){
 		if(e['type']==='name'){
 			form.appendChild(name_matcher(e));
@@ -200,7 +185,8 @@ function json_to_form(form,data){
 			form.appendChild(compound(e));
 		}
 	}
-	add_matcher(form);
+	if(add_buttons)
+	    add_matcher(form);
 }
 function build_form(data){
 	let r=document.createElement('form');
