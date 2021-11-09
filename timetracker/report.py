@@ -56,11 +56,12 @@ class NameTagger(Matcher):
     def __init__(self, match: Union[str, re.Pattern], tags: list[str], case_sensitive: bool = False):
         super().__init__()
         self.matcher = match
-        self.tags = list(filter(lambda x:len(x)>0,tags))
+        self.tags = list(filter(lambda x: len(x) > 0, tags))
         self.case_sensitive = case_sensitive
 
     def matches(self, window_event: models.WindowEvent) -> tuple[bool, Optional[list[str]]]:
-        wn = window_event.window_name.lower() if not self.case_sensitive else window_event.window_name
+        wn = window_event.window_name.lower(
+        ) if not self.case_sensitive else window_event.window_name
         is_match = self.match_string(self.matcher, wn)
         return is_match, self.tags
 
@@ -84,7 +85,8 @@ class ClassMatcher(Matcher):
         self.case_sensitive = case_sensitive
 
     def matches(self, window_event: models.WindowEvent) -> tuple[bool, Optional[list[str]]]:
-        is_match = any(map(lambda y: self.match_string(self.matcher, y.name), window_event.classes))
+        is_match = any(map(lambda y: self.match_string(
+            self.matcher, y.name), window_event.classes))
         return is_match, self.tags
 
     def as_json(self, name='class'):
@@ -92,6 +94,9 @@ class ClassMatcher(Matcher):
 
 
 class CompoundMatcher(Matcher):
+    """
+    Base class for match classes where the outcome is determined by other kinds of sub matchers 
+    """
     pass
 
 
@@ -154,6 +159,7 @@ class NotMatcher(CompoundMatcher):
     This is probably most useful in combination with other compound matchers to add additional
     discrimination ability
     """
+
     # __slots__ = ['matcher', 'tags']
 
     def __init__(self, matches, tags):
@@ -176,7 +182,8 @@ class NotMatcher(CompoundMatcher):
         return super().as_json('not')
 
 
-__types = {'or': OrMatcher, 'and': AndMatcher, 'name': NameTagger, 'class': ClassMatcher, 'not': NotMatcher}
+__types = {'or': OrMatcher, 'and': AndMatcher,
+           'name': NameTagger, 'class': ClassMatcher, 'not': NotMatcher}
 
 
 def from_json(obj: dict) -> Matcher:
@@ -205,3 +212,47 @@ def process_events(matchers, events: Iterable[models.WindowEvent]) -> list[tuple
             l.append('unlabelled')
         r.append((e, l))
     return r
+
+
+class TagPrioritizer:
+    """
+    A structure to replace any number of tags with the most 'important' one.
+
+    If no tags match it returns the existing list unmodified.
+    """
+
+    def __init__(self):
+        """
+        Initialize the tagprioritizer
+        """
+        self.priorities: dict[str, int] = {}
+
+    def set_priority(self, tag: str, pr: Optional[int]):
+        self.priorities[tag] = pr
+
+    def handle_tags(self, tags: list[str]):
+        l = tags
+        if any(lambda x: x in self.priorities.keys(), tags):
+            l = [max(tags, key=lambda x: self.priorities[x]
+                     if x in self.priorities.keys() else 0)]
+        return l
+
+
+class TagSupercedes:
+    """
+    A tag processor that, in the presence of a specific tag, removes a number of other tags from the list.
+
+    If the tag is not present the list of tags is not modified.
+    """
+
+    supercedes: list[str]
+    tag: str
+
+    def __init__(self, tag: str, supercedes: list[str]):
+        self.tag = tag
+        self.supercedes = supercedes
+
+    def handle_tags(self, tags: list[str]) -> list[str]:
+        if self.tag in tags:
+            return [x for x in tags if x not in self.supercedes]
+        return tags

@@ -1,109 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Timetracker</title>
     <script src="/assets/form.js"></script>
+    <link href="/assets/style.css" rel='stylesheet'>
     <style>
-        .matcher,.compound{
+        .matcher,
+        .compound {
             padding-left: 0.5cm;
 
         }
-        .simple-matcher, .compound-matcher{
+
+        .simple-matcher,
+        .compound-matcher {
             margin-left: 0.25cm;
             padding: 0.1cm;
 
         }
-        .simple-matcher{
+
+        .simple-matcher {
             border-left: 1px solid black;
         }
-        .compound-matcher{
+
+        .compound-matcher {
             border-left: 1px solid purple;
 
         }
-        #matcherthing > .compound-matcher{
+
+        #matcherthing>.compound-matcher {
             grid-row-end: span 3;
         }
-//        #matcherthing > .simple-matcher,.compound-matcher {
-//            width:25%;
-//        }
-        #matcherthing {
-            display:grid;
-            grid:auto-flow dense/1fr 1fr 1fr;
-            grid-auto-rows: auto;
-            width:100%;
-        }
-    .invis{
-        display:none;
-    }
 
+        /*        
+        #matcherthing > .simple-matcher,.compound-matcher {
+            width:25%;
+        }
+        */
+        #matcherthing {
+            display: grid;
+            grid: auto-flow dense/1fr 1fr 1fr;
+            grid-auto-rows: auto;
+            width: 100%;
+        }
+
+        .invis {
+            display: none;
+        }
     </style>
 </head>
+
 <body>
-<!--
+    <!--
 TODO Add more configurability
 TODO Add css to make it look better
 TODO style customization (Requires an improved chart API)
 -->
-<object id="svg" onload="document.getElementById('preview_load').classList=['invis'];this.classList=[];">>
-</object>
-<object id="preview_load" style="" onload="document.getElementById('svg').classList=['invis'];this.classList=[];"></object>
-<form>
-    <div id="matcherthing"
-         style="">
-        <div>
-            <button type="button" onclick="preview()">Preview</button>
-            <button type="button" onclick="save_matchers()">Save Report</button>
-            <span>Show titles: <input type="checkbox" id="show_titles"/></span><br/>
-            <span>Chart Width:<input id="width" type="number" value="20"></span><br/>
-            <span>Chart Height: <input id="height" type="number" value="10"></span><br/>
-            <span>Chart count: <input id="chart_count" type="number" value="1"></span><br/>
-            <span>Refresh Interval: <input id="refresh" type="number" value="35"></span>
+    <object id="svg" onload="document.getElementById('preview_load').classList=['invis'];this.classList=[];">>
+    </object>
+    <object id="preview_load" style=""
+        onload="document.getElementById('svg').classList=['invis'];this.classList=[];"></object>
+    <form>
+        <div id="matcherthing" style="">
+            <div>
+                <button type="button" onclick="preview()">Preview</button>
+                <button type="button" onclick="save_matchers()">Save Report</button>
+                <span>Show titles: <input type="checkbox" id="show_titles" /></span><br />
+                <span>Chart Width:<input id="width" type="number" value="20"></span><br />
+                <span>Chart Height: <input id="height" type="number" value="10"></span><br />
+                <span>Chart count: <input id="chart_count" type="number" value="1"></span><br />
+                <span>Refresh Interval: <input id="refresh" type="number" value="35"></span>
+            </div>
         </div>
-    </div>
-</form>
-<script type="text/javascript">
-    let f = document.getElementById("matcherthing");
-    var prev = document.getElementById('svg');
-    var next = document.getElementById('preview_load');
-    json_to_form(f,%%REPLACE%%);
-    const getparams = function(data,id){
-        let  st = document.querySelector("#show_titles").value?'true':'false';
-        return 'patterns='+data+"&show_titles="+st
-                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value+"&max_charts="
-                    + document.querySelector("#chart_count").value+"&id="+(id);
-    };
-    const geturl=function() {
-        let id=0;
-        return function(data){
+    </form>
+    <script type="text/javascript">
+        let f = document.getElementById("matcherthing");
+        var prev = document.getElementById('svg');
+        var next = document.getElementById('preview_load');
+        json_to_form(f, JSON.parse('%%REPLACE%%'));
+        const getparams = function (data, id) {
+            let st = document.querySelector("#show_titles").value ? 'true' : 'false';
+            return 'patterns=' + data + "&show_titles=" + st
+                + "&width=" + document.querySelector("#width").value + "&height=" + document.querySelector("#height").value + "&max_charts="
+                + document.querySelector("#chart_count").value + "&id=" + (id);
+        };
+        const geturl = function () {
+            let id = 0;
+            return function (data) {
 
-        return '/svg?'+getparams(data,id++);
-    }}();
-    var timing=undefined;
-    function save_matchers(){
-        window.open('save_matchers?patterns='+encodeURIComponent(JSON.stringify(from_form(f))));
-    }
-    function preview(){
-
-        let data = encodeURIComponent(JSON.stringify(from_form(f)));
-//        window.open('/?patterns='+data+"&show_titles="+document.querySelector("#show_titles").value
-//                    +"&width="+document.querySelector("#width").value+"&height="+document.querySelector("#height").value,'_blank').focus();
-        //document.querySelector('#preview').setAttribute('data',"");
-        next.setAttribute('data',geturl(data));
-        let tmp = next;
-        next=prev;
-        prev=tmp;
-        prev.setAttribute('data',geturl(data));
-        //document.querySelector('#preview_load').setAttribute('data',geturl(data));
-        if(timing===undefined){
-            let time = document.getElementById("refresh").value;
-            timing=setTimeout(function(){timing=undefined;preview()},time * 1000);
-        }else{
-            console.log("No need to schedule event :)");
+                return '/svg?' + getparams(data, id++);
+            }
+        }();
+        var timing = undefined;
+        function save_matchers() {
+            window.open('save_matchers?patterns=' + encodeURIComponent(JSON.stringify(from_form(f))));
         }
-    }
+        function preview() {
+
+            let data = encodeURIComponent(JSON.stringify(from_form(f)));
+            next.setAttribute('data', geturl(data));
+            let tmp = next;
+            next = prev;
+            prev = tmp;
+            prev.setAttribute('data', geturl(data));
+            if (timing === undefined) {
+                let time = document.getElementById("refresh").value;
+                timing = setTimeout(function () { timing = undefined; preview() }, time * 1000);
+            } else {
+                console.log("No need to schedule event :)");
+            }
+        }
 
 
-</script>
+    </script>
 </body>
+
 </html>

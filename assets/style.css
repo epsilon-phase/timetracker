@@ -1,0 +1,7 @@
+body {
+    background-color: #2e2e2e;
+    color:#d6d6d6;
+}
+.hovered{
+    border: 2px solid brown;
+}

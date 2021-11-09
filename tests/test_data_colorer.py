@@ -4,7 +4,7 @@ from timetracker.chart.data_colorer import *
 import datetime
 
 
-class data_colorer_test(unittest.TestCase):
+class DataColorerTest(unittest.TestCase):
     def test_gradient(self):
         a = Gradient([0, 1], lambda x: x, (255, 0, 0), (0, 255, 0))
         g = a.from_fraction_base(0.5)
