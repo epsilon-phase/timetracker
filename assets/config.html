@@ -33,11 +33,6 @@
             grid-row-end: span 3;
         }
 
-        /*        
-        #matcherthing > .simple-matcher,.compound-matcher {
-            width:25%;
-        }
-        */
         #matcherthing {
             display: grid;
             grid: auto-flow dense/1fr 1fr 1fr;
@@ -59,19 +54,17 @@ TODO style customization (Requires an improved chart API)
 -->
     <object id="svg" onload="document.getElementById('preview_load').classList=['invis'];this.classList=[];">>
     </object>
-    <object id="preview_load" style=""
-        onload="document.getElementById('svg').classList=['invis'];this.classList=[];"></object>
+    <object id="preview_load" onload="document.getElementById('svg').classList=['invis'];this.classList=[];"></object>
     <form>
-        <div id="matcherthing" style="">
-            <div>
-                <button type="button" onclick="preview()">Preview</button>
-                <button type="button" onclick="save_matchers()">Save Report</button>
-                <span>Show titles: <input type="checkbox" id="show_titles" /></span><br />
-                <span>Chart Width:<input id="width" type="number" value="20"></span><br />
-                <span>Chart Height: <input id="height" type="number" value="10"></span><br />
-                <span>Chart count: <input id="chart_count" type="number" value="1"></span><br />
-                <span>Refresh Interval: <input id="refresh" type="number" value="35"></span>
-            </div>
+        <div id="matcherthing" <div>
+            <button type="button" onclick="preview()">Preview</button>
+            <button type="button" onclick="save_matchers()">Save Report</button>
+            <span>Show titles: <input type="checkbox" id="show_titles" /></span><br />
+            <span>Chart Width:<input id="width" type="number" value="20"></span><br />
+            <span>Chart Height: <input id="height" type="number" value="10"></span><br />
+            <span>Chart count: <input id="chart_count" type="number" value="1"></span><br />
+            <span>Refresh Interval: <input id="refresh" type="number" value="35"></span>
+        </div>
         </div>
     </form>
     <script type="text/javascript">

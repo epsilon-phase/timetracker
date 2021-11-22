@@ -52,7 +52,7 @@ def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
                                  v, b"WM_NAME"],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE) \
-                   .communicate()[0].strip().split(b'"', 1)[-1][:-1].decode()
+            .communicate()[0].strip().split(b'"', 1)[-1][:-1].decode()
         wclass = \
             subprocess.Popen(['xprop', '-id', v, 'WM_CLASS'], stdout=subprocess.PIPE).communicate()[0].split(b'"', 1)[
                 -1].decode('utf-8')
@@ -60,7 +60,8 @@ def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
     else:
         while True:
             try:
-                window_id = root.get_full_property(NET_ACTIVE_WINDOW, Xlib.X.AnyPropertyType).value[0]
+                window_id = root.get_full_property(
+                    NET_ACTIVE_WINDOW, Xlib.X.AnyPropertyType).value[0]
                 window = disp.create_resource_object('window', window_id)
                 name = window.get_full_property(NET_WM_NAME, 0)
                 if name:
@@ -69,8 +70,9 @@ def GetActiveWindowTitle(last: Optional[WindowEvent]) -> WindowEvent:
                     print("Couldn't get window title atm, sleeping")
                     sleep(_SAMPLE_INTERVAL)
                     return GetActiveWindowTitle(last)
-                wclass = set(window.get_wm_class())
-                break
+                if window:
+                    wclass = set(window.get_wm_class())
+                    break
             except Xlib.error.BadWindow:
                 continue
 
@@ -106,7 +108,8 @@ def track():
     last = None
 
     c = 0
-    context = libinput.LibInput(context_type=libinput.constant.ContextType.UDEV)
+    context = libinput.LibInput(
+        context_type=libinput.constant.ContextType.UDEV)
     context.assign_seat('seat0')
     event = context.events
     last_time = datetime.datetime.now() - datetime.timedelta(seconds=20)
@@ -123,7 +126,8 @@ def track():
             if i.type.is_pointer() and i.type == libinput.EventType.POINTER_MOTION and last:
                 if not last.mouse_motion:
                     last.mouse_motion = 0.0
-                accumulated_motion += sqrt(sum(map(lambda x: x ** 2, i.delta_unaccelerated)))
+                accumulated_motion += sqrt(sum(map(lambda x: x **
+                                           2, i.delta_unaccelerated)))
             elif last and i.type == libinput.EventType.KEYBOARD_KEY and i.key_state == libinput.KeyState.PRESSED:
                 accumulated_keys += 1 + i.seat_key_count
             # Debounce the command invocation, as this could get very expensive if it is called on each event
@@ -137,7 +141,9 @@ def track():
                     last = current
                 else:
                     print("old event")
-                last.mouse_motion = (last.mouse_motion or 0) + accumulated_motion
+                last.mouse_motion = (
+                    last.mouse_motion or 0) + accumulated_motion
                 last.keystrokes = (last.keystrokes or 0) + accumulated_keys
-                print(f"Accumulated {accumulated_motion} movement, {accumulated_keys} keys")
+                print(
+                    f"Accumulated {accumulated_motion} movement, {accumulated_keys} keys")
                 accumulated_keys, accumulated_motion = 0, 0

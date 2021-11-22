@@ -27,6 +27,7 @@ class ChartPart:
     range_start: datetime.datetime
     range_end: datetime.datetime
     title: str
+    tagindex: dict[str, int]
 
     def __init__(self, title: str, data: list[tuple[models.WindowEvent, list[str]]], cc=color_chooser.monokai):
         """
@@ -70,7 +71,6 @@ class ChartPart:
         from . import color_chooser
         from itertools import chain
         chart: svgwrite.drawing.SVG = drw.add(drw.g())
-
         annotation_color = color_chooser.monokai.lines
         chart.add(drw.rect(insert=(horizontal_offset * cm, height_offset * cm), size=(width * cm, height * cm),
                            fill=color_chooser.monokai.background))
@@ -88,18 +88,22 @@ class ChartPart:
 
         vscale = (height - 1) / len(tags)
         current = self.range_start
-        ordinals = {name: number for (name, number) in zip(sorted(tags, key=str.lower), range(len(tags)))}
+        ordinals = {name: number for (name, number) in zip(
+            sorted(tags, key=str.lower), range(len(tags)))}
         # Ensures consistent numbering between different charts
         for i in ordinals.keys():
             self.chooseColor(i)
         pos = {}
         block_groups = {}
         current = current.replace(minute=0, second=0)
-        end_time = (self.range_end + datetime.timedelta(hours=1)).replace(minute=0, second=0)
+        end_time = (self.range_end + datetime.timedelta(hours=1)
+                    ).replace(minute=0, second=0)
         start_time = current.replace()
-        scale = (width - offset - padding) / (end_time - start_time).total_seconds()
+        scale = (width - offset - padding) / \
+            (end_time - start_time).total_seconds()
         vticks.add(drw.line(start=((offset + horizontal_offset) * cm, height_offset * cm),
-                            end=((horizontal_offset + offset) * cm, (height_offset + height) * cm),
+                            end=((horizontal_offset + offset) * cm,
+                                 (height_offset + height) * cm),
                             stroke=annotation_color))
 
         # Provide a convenient means to make vertical lines.
@@ -117,10 +121,13 @@ class ChartPart:
         now = datetime.datetime.now()
         import timetracker.chart.data_colorer as data_colorer
         while current <= end_time:
-            cx = horizontal_offset + offset + scale * (current - start_time).total_seconds()
+            cx = horizontal_offset + offset + scale * \
+                (current - start_time).total_seconds()
             vticks.add(vline(cx, height_offset, 1, stroke=annotation_color))
-            vticks.add(vline(cx + (hour * 3) / 4, height_offset, .25, stroke=annotation_color))
-            vticks.add(vline(cx + (hour * 1) / 4, height_offset, .25, stroke=annotation_color))
+            vticks.add(vline(cx + (hour * 3) / 4,
+                       height_offset, .25, stroke=annotation_color))
+            vticks.add(vline(cx + (hour * 1) / 4,
+                       height_offset, .25, stroke=annotation_color))
             vticks.add(
                 vline(cx + hour / 2, height_offset, 0.5, stroke=annotation_color))
             timetext = f"{current.hour}:{current.minute}:{current.second}"
@@ -135,10 +142,10 @@ class ChartPart:
         import timetracker.chart.data_shaper
         rs = timetracker.chart.data_shaper.CircleShaper()
         max_motion = \
-        max(chain(filter(lambda x: x[0].mouse_motion, self.data), [[namedtuple('mock', 'mouse_motion')(0)]]),
-            key=lambda x: x[0].mouse_motion if x[
+            max(chain(filter(lambda x: x[0].mouse_motion, self.data), [[namedtuple('mock', 'mouse_motion')(0)]]),
+                key=lambda x: x[0].mouse_motion if x[
                 0].mouse_motion else 0.0)[
-            0].mouse_motion
+                0].mouse_motion
         for index, value in enumerate(self.data):
             for i in value[1]:
                 if i in pos.keys():
@@ -150,18 +157,22 @@ class ChartPart:
                         drw.g(id=f"block{v}", fill=self.chooseColor(i), stroke=self.chooseColor(i)))
                     block_groups[i].add(
                         drw.line(
-                            start=((offset + horizontal_offset) * cm, (1 + height_offset + (.5 + v) * vscale) * cm),
+                            start=((offset + horizontal_offset) * cm,
+                                   (1 + height_offset + (.5 + v) * vscale) * cm),
                             end=(
                                 (horizontal_offset + width + hour - offset) * cm,
                                 (1 + height_offset + (0.5 + v) * vscale) * cm),
                             stroke=annotation_color,
                             stroke_dasharray="5", stroke_width=".2mm"))
                     f = list(filter(lambda x: i in x[1], self.data))
-                    s = sum(map(lambda x: (x[0].time_end - x[0].time_start).total_seconds(), f))
-                    total_strokes = sum(map(lambda x: x[0].keystrokes if x[0].keystrokes else 0, f))
+                    s = sum(
+                        map(lambda x: (x[0].time_end - x[0].time_start).total_seconds(), f))
+                    total_strokes = sum(
+                        map(lambda x: x[0].keystrokes if x[0].keystrokes else 0, f))
                     l = labels.add(
                         svgwrite.text.Text("", x=[horizontal_offset * cm],
-                                           y=[(v * vscale + vscale / 2.0 + height_offset + 1) * cm],
+                                           y=[(v * vscale + vscale / 2.0 +
+                                               height_offset + 1) * cm],
                                            fill=annotation_color))
                     l.add(svgwrite.text.TSpan(i))
                     addendum = f"{round(s, ndigits=2)} seconds"
@@ -204,11 +215,14 @@ class ChartPart:
                 block_groups[i].add(r)
 
         chart.add(drw.line(start=(horizontal_offset * cm, (height_offset + height) * cm),
-                           end=((width + horizontal_offset) * cm, (height_offset + height) * cm),
+                           end=((width + horizontal_offset) * cm,
+                                (height_offset + height) * cm),
                            stroke=annotation_color))
         if self.data[0][0].time_start.date() == now.date():
-            s = (now - start_time).total_seconds() * scale + horizontal_offset + offset
-            line = chart.add(vline(s, height_offset + 1, height, stroke='#FF0000'))
+            s = (now - start_time).total_seconds() * \
+                scale + horizontal_offset + offset
+            line = chart.add(
+                vline(s, height_offset + 1, height, stroke='#FF0000'))
 
 
 def test():
@@ -276,7 +290,8 @@ class Chart:
         """
         c = Chart(width, height, show_titles)
         for day in reversed(data):
-            c.parts.append(ChartPart(day[0][0].time_start.strftime("%m/%d/%y"), day))
+            c.parts.append(
+                ChartPart(day[0][0].time_start.strftime("%m/%d/%y"), day))
         return c
 
     def draw(self, svg):
