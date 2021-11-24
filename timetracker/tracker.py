@@ -115,6 +115,9 @@ def track():
     last_time = datetime.datetime.now() - datetime.timedelta(seconds=20)
     accumulated_motion = 0
     accumulated_keys = 0
+    # This part should probably be extracted to its own file which is only imported when the user is in the 'input' group
+    # The alternative is just sleeping for a few seconds and then running the old code that retrieves the mouse's position
+    # through xlib
     for i in event:
         if i.type.is_pointer() or i.type.is_keyboard:
             elapsed = (datetime.datetime.now() - last_time).total_seconds()

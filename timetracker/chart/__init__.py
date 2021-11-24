@@ -7,6 +7,7 @@ from __future__ import annotations
 import datetime
 
 import svgwrite
+from timetracker.chart.base_chart import ChartPartBase
 
 import timetracker.chart.data_shaper
 from itertools import chain
@@ -17,7 +18,7 @@ from . import color_chooser
 from typing import *
 
 
-class ChartPart:
+class ChartPart(ChartPartBase):
     """
     A single part of the chart. At this point, just a single sort.
     A single day, in this case usually.
@@ -36,6 +37,7 @@ class ChartPart:
         :param data: The data contained within
         :param cc: The color chooser/palette
         """
+
         self.title = title
         self.data = data.copy()
         self.data.sort(key=lambda x: x[0].time_end)
@@ -70,12 +72,13 @@ class ChartPart:
         """
         from . import color_chooser
         from itertools import chain
-        chart: svgwrite.drawing.SVG = drw.add(drw.g())
+        chart: svgwrite.drawing.SVG = ChartPartBase.draw(self,
+                                                         drw, width, height, height_offset, horizontal_offset)
         annotation_color = color_chooser.monokai.lines
-        chart.add(drw.rect(insert=(horizontal_offset * cm, height_offset * cm), size=(width * cm, height * cm),
-                           fill=color_chooser.monokai.background))
-        chart.add(svgwrite.text.Text(self.title, x=[horizontal_offset * cm], y=[(height_offset + 0.5) * cm],
-                                     fill=annotation_color))
+        # chart.add(drw.rect(insert=(horizontal_offset * cm, height_offset * cm), size=(width * cm, height * cm),
+        #                    fill=color_chooser.monokai.background))
+        # chart.add(svgwrite.text.Text(self.title, x=[horizontal_offset * cm], y=[(height_offset + 0.5) * cm],
+        #                              fill=annotation_color))
 
         vticks: svgwrite.drawing.SVG = chart.add(drw.g(id="vticks"))
         blocks: svgwrite.drawing.SVG = chart.add(drw.g(id='blocks'))
@@ -197,12 +200,6 @@ class ChartPart:
                         r['ry'] = (vscale / 3) * cm
                 except ValueError:
                     pass
-                # start = v * vscale + height_offset + 1
-                # block_width = scale * (value[0].time_end - value[0].time_start).total_seconds()
-                # startx = (value[0].time_start - start_time).total_seconds() * scale + offset + horizontal_offset
-                # r = drw.rect(insert=(startx * cm, start * cm), size=(block_width * cm, vscale * cm),
-                #              ry=(vscale / 2.0) * cm, rx=0.1 * cm,
-                #              stroke=gradient.color(value[0]) if value[0].keystrokes else "")
                 r['class'] = i
                 if show_titles:
                     addend = ""
