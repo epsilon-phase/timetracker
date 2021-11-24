@@ -16,6 +16,7 @@ from .. import models
 from svgwrite import cm, mm
 from . import color_chooser
 from typing import *
+from math import ceil
 
 
 class ChartPart(ChartPartBase):
@@ -294,7 +295,7 @@ class Chart:
     def draw(self, svg):
 
         mw = self.width * min(self.columns, len(self.parts))
-        mh = self.height * max(len(self.parts) // self.columns, 1)
+        mh = self.height * ceil(max(len(self.parts) / self.columns, 1))
         for chart, pos in zip(self.parts, grid_iterator(len(self.parts), self.columns, self.width, self.height)):
             print(pos)
             # mw, mh = max(mw, pos[0]), max(mh, pos[1])
